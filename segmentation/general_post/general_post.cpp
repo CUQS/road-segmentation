@@ -54,8 +54,8 @@ const uint32_t kSendDataPort = 0;
 // sleep interval when queue full (unit:microseconds)
 const __useconds_t kSleepInterval = 200000;
 
-// size of output tensor vector should be 2.
-const uint32_t kOutputTensorSize = 2;
+// size of output tensor vector should be 1.
+const uint32_t kOutputTensorSize = 1;
 const uint32_t kOutputNumIndex = 0;
 const uint32_t kOutputTesnorIndex = 1;
 
@@ -70,6 +70,9 @@ const string kOutputFilePrefix = "out_";
 
 // boundingbox tensor shape
 const static std::vector<uint32_t> kDimDetectionOut = {64, 304, 8};
+
+// output image tensor shape
+const static std::vector<uint32_t> kDimImageOutput = {1, 224, 224};
 
 // num tensor shape
 const static std::vector<uint32_t> kDimBBoxCnt = {32};
@@ -131,45 +134,69 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
     ERROR_LOG("Detection output size does not match.");
     return HIAI_ERROR;
   }
-  float *bbox_buffer = reinterpret_cast<float *>(outputs[kOutputTesnorIndex].data.get());
-  uint32_t *num_buffer = reinterpret_cast<uint32_t *>(outputs[kOutputNumIndex].data.get());
-  Tensor<uint32_t> tensor_num;
-  Tensor<float> tensor_bbox;
+
+  /* -----------------------------------------------------
+   * image output
+   * -----------------------------------------------------
+  **/
+  cout << "start get outputs" << endl;
+  float *img_output = reinterpret_cast<float *>(outputs[0].data.get());
+  Tensor<float> tensor_imgoutput;
   bool ret = true;
-  ret = tensor_num.FromArray(num_buffer, kDimBBoxCnt);
+  ret = tensor_imgoutput.FromArray(img_output, kDimImageOutput);
   if (!ret) {
     ERROR_LOG("Failed to resolve tensor from array.");
     return HIAI_ERROR;
   }
-  ret = tensor_bbox.FromArray(bbox_buffer, kDimDetectionOut);
-  if (!ret) {
-    ERROR_LOG("Failed to resolve tensor from array.");
-    return HIAI_ERROR;
-  }
+  cout << "get outputs" << endl;
+  /* -----------------------------------------------------
+   * image output
+   * -----------------------------------------------------
+  **/
 
-  vector<BoundingBox> bboxes;
-  for (uint32_t attr = 0; attr < result->console_params.output_nums; ++attr) {
-    for (uint32_t bbox_idx = 0; bbox_idx < tensor_num[attr]; ++bbox_idx) {
-      uint32_t class_idx = attr * kCategoryIndex;
 
-      uint32_t lt_x = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kTopLeftX);
-      uint32_t lt_y = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kTopLeftY);
-      uint32_t rb_x = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kLowerRigltX);
-      uint32_t rb_y = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kLowerRightY);
+  // float *bbox_buffer = reinterpret_cast<float *>(outputs[kOutputTesnorIndex].data.get());
+  // uint32_t *num_buffer = reinterpret_cast<uint32_t *>(outputs[kOutputNumIndex].data.get());
+  // Tensor<uint32_t> tensor_num;
+  // Tensor<float> tensor_bbox;
+  // bool ret = true;
+  // ret = tensor_num.FromArray(num_buffer, kDimBBoxCnt);
+  // if (!ret) {
+  //   ERROR_LOG("Failed to resolve tensor from array.");
+  //   return HIAI_ERROR;
+  // }
+  // ret = tensor_bbox.FromArray(bbox_buffer, kDimDetectionOut);
+  // if (!ret) {
+  //   ERROR_LOG("Failed to resolve tensor from array.");
+  //   return HIAI_ERROR;
+  // }
 
-      float score = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kScore);
-      bboxes.push_back( {lt_x, lt_y, rb_x, rb_y, attr, score});
-    }
-  }
+  // vector<BoundingBox> bboxes;
+  // for (uint32_t attr = 0; attr < result->console_params.output_nums; ++attr) {
+  //   for (uint32_t bbox_idx = 0; bbox_idx < tensor_num[attr]; ++bbox_idx) {
+  //     uint32_t class_idx = attr * kCategoryIndex;
 
-  if (bboxes.empty()) {
-    INFO_LOG("There is none object detected in image %s",
-             result->image_info.path.c_str());
-    return HIAI_OK;
-  }
+  //     uint32_t lt_x = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kTopLeftX);
+  //     uint32_t lt_y = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kTopLeftY);
+  //     uint32_t rb_x = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kLowerRigltX);
+  //     uint32_t rb_y = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kLowerRightY);
+
+  //     float score = tensor_bbox(class_idx, bbox_idx, BBoxIndex::kScore);
+  //     bboxes.push_back( {lt_x, lt_y, rb_x, rb_y, attr, score});
+  //   }
+  // }
+
+  // if (bboxes.empty()) {
+  //   INFO_LOG("There is none object detected in image %s",
+  //            result->image_info.path.c_str());
+  //   return HIAI_OK;
+  // }
 
   cv::Mat mat = cv::imread(result->image_info.path, CV_LOAD_IMAGE_UNCHANGED);
-
+  /* -----------------------------------------------------
+   * image output
+   * -----------------------------------------------------
+  **/
   if (mat.empty()) {
     ERROR_LOG("Fialed to deal file=%s. Reason: read image failed.",
               result->image_info.path.c_str());
@@ -177,24 +204,57 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
   }
   float scale_width = (float)mat.cols / result->image_info.width;
   float scale_height = (float)mat.rows / result->image_info.height;
-
+  /* -----------------------------------------------------
+   * image output
+   * -----------------------------------------------------
+  **/
   stringstream sstream;
-  for (int i = 0; i < bboxes.size(); ++i) {
-    cv::Point p1, p2;
-    p1.x = scale_width * bboxes[i].lt_x;
-    p1.y = scale_height * bboxes[i].lt_y;
-    p2.x = scale_width * bboxes[i].rb_x;
-    p2.y = scale_height * bboxes[i].rb_y;
-    cv::rectangle(mat, p1, p2, kColors[i % kColors.size()], kLineSolid);
 
-    sstream.str("");
-    sstream << bboxes[i].attribute << " ";
-    sstream.precision(kScorePrecision);
-    sstream << 100 * bboxes[i].score << "%(Test3)";
-    string obj_str = sstream.str();
-    cv::putText(mat, obj_str, cv::Point(p1.x, p1.y + kLabelOffset),
-                cv::FONT_HERSHEY_COMPLEX, kFountScale, kFontColor);
+  // for (int i = 0; i < bboxes.size(); ++i) {
+  //   cv::Point p1, p2;
+  //   p1.x = scale_width * bboxes[i].lt_x;
+  //   p1.y = scale_height * bboxes[i].lt_y;
+  //   p2.x = scale_width * bboxes[i].rb_x;
+  //   p2.y = scale_height * bboxes[i].rb_y;
+  //   cv::rectangle(mat, p1, p2, kColors[i % kColors.size()], kLineSolid);
+
+  //   sstream.str("");
+  //   sstream << bboxes[i].attribute << " ";
+  //   sstream.precision(kScorePrecision);
+  //   sstream << 100 * bboxes[i].score << "%(Test3)";
+  //   string obj_str = sstream.str();
+  //   cv::putText(mat, obj_str, cv::Point(p1.x, p1.y + kLabelOffset),
+  //               cv::FONT_HERSHEY_COMPLEX, kFountScale, kFontColor);
+  // }
+
+
+  /* -----------------------------------------------------
+   * image output
+   * -----------------------------------------------------
+  **/
+  cout << "start mat change!!" << endl;
+  cv::Vec3b pVec3b;
+  float maxValue = -1;
+  for (int i = 0; i < 224; i++) {
+    for (int j = 0; j < 224; j++) {
+      float resultValue = tensor_imgoutput(0, i, j);
+      if (resultValue>maxValue) {
+        cout << "result " << i << "," << j << ": " << tensor_imgoutput(0, i, j) << endl;
+        maxValue = resultValue;
+      }
+      int pixValue = 0;
+      if (resultValue>0) pixValue = 255;
+      pVec3b[0] = pixValue;
+      pVec3b[1] = pixValue;
+      pVec3b[2] = pixValue;
+      mat.at<cv::Vec3b>(i, j) = pVec3b;
+    }
   }
+  cout << "mat changed!!" << endl;
+  /* -----------------------------------------------------
+   * image output
+   * -----------------------------------------------------
+  **/
 
   int pos = result->image_info.path.find_last_of(kFileSperator);
   string file_name(result->image_info.path.substr(pos + 1));
@@ -209,6 +269,7 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
               result->image_info.path.c_str());
     return HIAI_ERROR;
   }
+  
   return HIAI_OK;
 }
 

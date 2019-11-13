@@ -170,6 +170,7 @@ bool GeneralImage::ArrangeImageInfo(shared_ptr<EngineTrans> &image_handle,
   image_handle->image_info.height = mat.rows;
 
   // set image data
+  cout << "mat.total(): " << mat.total() << endl;
   uint32_t size = mat.total() * mat.channels();
   u_int8_t *image_buf_ptr = new (nothrow) u_int8_t[size];
   if (image_buf_ptr == nullptr) {
@@ -178,10 +179,11 @@ bool GeneralImage::ArrangeImageInfo(shared_ptr<EngineTrans> &image_handle,
               image_path.c_str());
     return false;
   }
-
+  cout << "copy mat from image" << endl;
   error_t mem_ret = memcpy_s(image_buf_ptr, size, mat.ptr<u_int8_t>(),
                              mat.total() * mat.channels());
   if (mem_ret != EOK) {
+    cout << "copy mat from image failed" << endl;
     delete[] image_buf_ptr;
     ERROR_LOG("Failed to deal file=%s. Reason: memcpy_s failed.",
               image_path.c_str());
@@ -276,7 +278,9 @@ HIAI_IMPL_ENGINE_PROCESS("general_image",
     ERROR_LOG("Please stop this process manually.");
     return HIAI_ERROR;
   }
+
   image_handle->is_finished = true;
+
   if (SendToEngine(image_handle)) {
     return HIAI_OK;
   }

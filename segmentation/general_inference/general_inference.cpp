@@ -188,31 +188,31 @@ bool GeneralInference::Inference(
   vector<shared_ptr<hiai::IAITensor>> input_data_vec;
   input_data_vec.push_back(input_data);
 
-  shared_ptr<hiai::AINeuralNetworkBuffer> info_buf = nullptr;
-  MAKE_SHARED_NO_THROW(info_buf, hiai::AINeuralNetworkBuffer);
-  if (neural_buf == nullptr) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-        "new AINeuralNetworkBuffer failed");
-    return false;
-  }
-  float info_tmp[kImageInfoLength] = {(float)resized_image.height,
-    (float)resized_image.width,
-    (float)resized_image.depth};
-  uint32_t bin_info_len = kImageInfoLength * sizeof(float);
-  shared_ptr<uint8_t> data_ptr =
-  shared_ptr<uint8_t>(new uint8_t[bin_info_len], default_delete<uint8_t>());
-  int mem_ret = memcpy_s(data_ptr.get(), bin_info_len, info_tmp, bin_info_len);
-  if(mem_ret != 0) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-        "image info input tensor memory copy failed");
-    return false;
-  }
-  info_buf->SetBuffer((void *)data_ptr.get(), bin_info_len);
+  // shared_ptr<hiai::AINeuralNetworkBuffer> info_buf = nullptr;
+  // MAKE_SHARED_NO_THROW(info_buf, hiai::AINeuralNetworkBuffer);
+  // if (neural_buf == nullptr) {
+  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+  //       "new AINeuralNetworkBuffer failed");
+  //   return false;
+  // }
+  // float info_tmp[kImageInfoLength] = {(float)resized_image.height,
+  //   (float)resized_image.width,
+  //   (float)resized_image.depth};
+  // uint32_t bin_info_len = kImageInfoLength * sizeof(float);
+  // shared_ptr<uint8_t> data_ptr =
+  // shared_ptr<uint8_t>(new uint8_t[bin_info_len], default_delete<uint8_t>());
+  // int mem_ret = memcpy_s(data_ptr.get(), bin_info_len, info_tmp, bin_info_len);
+  // if(mem_ret != 0) {
+  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+  //       "image info input tensor memory copy failed");
+  //   return false;
+  // }
+  // info_buf->SetBuffer((void *)data_ptr.get(), bin_info_len);
 
-  //image info tensor
-  shared_ptr<hiai::IAITensor> img_info =
-  static_pointer_cast<hiai::IAITensor>(info_buf);
-  input_data_vec.push_back(img_info);
+  // //image info tensor
+  // shared_ptr<hiai::IAITensor> img_info =
+  // static_pointer_cast<hiai::IAITensor>(info_buf);
+  // input_data_vec.push_back(img_info);
 
   // Call Process
   // 1. create output tensor
@@ -315,6 +315,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   // just send data when finished
   shared_ptr<EngineTrans> image_handle = static_pointer_cast<EngineTrans>(arg0);
   if (image_handle->is_finished) {
+    cout << "image_handle is finished" << endl;
     if (SendToEngine(image_handle)) {
       return HIAI_OK;
     }
