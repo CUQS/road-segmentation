@@ -72,7 +72,7 @@ const string kOutputFilePrefix = "out_";
 const static std::vector<uint32_t> kDimDetectionOut = {64, 304, 8};
 
 // output image tensor shape
-const static std::vector<uint32_t> kDimImageOutput = {1, 224, 224};
+const static std::vector<uint32_t> kDimImageOutput = {465750, 2};
 
 // num tensor shape
 const static std::vector<uint32_t> kDimBBoxCnt = {32};
@@ -141,6 +141,7 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
   **/
   cout << "start get outputs" << endl;
   float *img_output = reinterpret_cast<float *>(outputs[0].data.get());
+  cout << "convert outputs" << endl;
   Tensor<float> tensor_imgoutput;
   bool ret = true;
   ret = tensor_imgoutput.FromArray(img_output, kDimImageOutput);
@@ -197,13 +198,13 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
    * image output
    * -----------------------------------------------------
   **/
-  if (mat.empty()) {
-    ERROR_LOG("Fialed to deal file=%s. Reason: read image failed.",
-              result->image_info.path.c_str());
-    return HIAI_ERROR;
-  }
-  float scale_width = (float)mat.cols / result->image_info.width;
-  float scale_height = (float)mat.rows / result->image_info.height;
+  // if (mat.empty()) {
+  //   ERROR_LOG("Fialed to deal file=%s. Reason: read image failed.",
+  //             result->image_info.path.c_str());
+  //   return HIAI_ERROR;
+  // }
+  // float scale_width = (float)mat.cols / result->image_info.width;
+  // float scale_height = (float)mat.rows / result->image_info.height;
   /* -----------------------------------------------------
    * image output
    * -----------------------------------------------------
@@ -234,19 +235,16 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
   **/
   cout << "start mat change!!" << endl;
   cv::Vec3b pVec3b;
-  float maxValue = -1;
-  for (int i = 0; i < 224; i++) {
-    for (int j = 0; j < 224; j++) {
-      float resultValue = tensor_imgoutput(0, i, j);
-      if (resultValue>maxValue) {
-        cout << "result " << i << "," << j << ": " << tensor_imgoutput(0, i, j) << endl;
-        maxValue = resultValue;
-      }
-      int pixValue = 0;
-      if (resultValue>0) pixValue = 255;
-      pVec3b[0] = pixValue;
-      pVec3b[1] = pixValue;
-      pVec3b[2] = pixValue;
+  for (int i = 0; i < 375; i++) {
+    for (int j = 0; j < 1242; j++) {
+      float resultValue = tensor_imgoutput(i*1242+j, 0)*255.0;
+      cv::Vec3b pNow = mat.at<cv::Vec3b>(i, j);
+      pVec3b[0] = (int) (0.4*resultValue+0.6*pNow[0]);
+      pVec3b[1] = pNow[1];
+      pVec3b[2] = (int) (0.4*(255.0-resultValue)+0.6*pNow[2]);
+      if (pVec3b[0]>255) pVec3b[0]=255;
+      if (pVec3b[1]>255) pVec3b[1]=255;
+      if (pVec3b[2]>255) pVec3b[2]=255;
       mat.at<cv::Vec3b>(i, j) = pVec3b;
     }
   }
