@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 run_segmentation.py -m model.om -w 1242 -h 375 -i test.png -o ./
+python3 run_segmentation.py -m kittisegRealTime.om -w 623 -h 188 -i test.png -o ./
