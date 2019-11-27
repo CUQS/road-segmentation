@@ -129,13 +129,16 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
    * image output
    * -----------------------------------------------------
   **/
-  cv::Mat mat = cv::imread(result->image_info.path, CV_LOAD_IMAGE_UNCHANGED);
+  cout << "unsigned char to mat" << endl;
+  uint8_t* pdata = result->image_info.data.get();
+  // cv::Mat mat = cv::imread(result->image_info.path, CV_LOAD_IMAGE_UNCHANGED);
+  cv::Mat mat = cv::Mat(188, 623, CV_8UC3, pdata);
   stringstream sstream;
   /* -----------------------------------------------------
    * image output
    * -----------------------------------------------------
   **/
-  cout << "start mat change!!" << endl;
+  cout << "start mat change" << endl;
   cv::Vec3b pVec3b;
   for (int i = 0; i < 188; i++) {
     for (int j = 0; j < 623; j++) {
@@ -147,6 +150,9 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
       if (pVec3b[0]>255) pVec3b[0]=255;
       if (pVec3b[1]>255) pVec3b[1]=255;
       if (pVec3b[2]>255) pVec3b[2]=255;
+      if (pVec3b[0]<0) pVec3b[0]=0;
+      if (pVec3b[1]<0) pVec3b[1]=0;
+      if (pVec3b[2]<0) pVec3b[2]=0;
       mat.at<cv::Vec3b>(i, j) = pVec3b;
     }
   }

@@ -201,8 +201,8 @@ bool GeneralInference::Inference(
   }
 
   // 2. process
-  HIAI_ENGINE_LOG("aiModelManager->Process start!");
-  cout << "aiModelManager->Process start!" << endl;
+  HIAI_ENGINE_LOG("aiModelManager->Process start");
+  cout << "aiModelManager->Process start\n-----------------------" << endl;
   ret = ai_model_manager_->Process(ai_context, input_data_vec, output_data_vec,
                                    kAiModelProcessTimeout);
   // process failed, also need to send data to post process

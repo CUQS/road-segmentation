@@ -37,7 +37,7 @@ graphs {
 
       items {
         name: "image_size"
-        value: "623x188"
+        value: "1280x720"
       }
 
       items {
