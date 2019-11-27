@@ -49,8 +49,6 @@ struct ConsoleParams {
   std::string input_path = "";
   // result output path
   std::string output_path = "";
-  // output categories
-  uint32_t output_nums = 0;
 };
 
 /**
@@ -58,8 +56,7 @@ struct ConsoleParams {
  */
 template<class Archive>
 void serialize(Archive& ar, ConsoleParams& data) {
-  ar(data.model_width, data.model_height, data.input_path, data.output_path,
-     data.output_nums);
+  ar(data.model_width, data.model_height, data.input_path, data.output_path);
 }
 
 /**

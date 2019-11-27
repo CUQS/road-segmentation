@@ -65,7 +65,6 @@ const string kPathSeparator = "/";
 }
 
 // register custom data type
-HIAI_REGISTER_DATA_TYPE("ConsoleParams", ConsoleParams);
 HIAI_REGISTER_DATA_TYPE("EngineTrans", EngineTrans);
 
 HIAI_StatusT GeneralImage::Init(
@@ -73,85 +72,6 @@ HIAI_StatusT GeneralImage::Init(
     const vector<hiai::AIModelDescription>& model_desc) {
   // do noting
   return HIAI_OK;
-}
-
-void GeneralImage::GetAllFiles(const string &path, vector<string> &file_vec) {
-  // split file path
-  vector<string> path_vector;
-  SplitPath(path, path_vector);
-
-  for (string every_path : path_vector) {
-    // check path exist or not
-    if (!IsPathExist(path)) {
-      ERROR_LOG("Failed to deal path=%s. Reason: not exist or can not access.",
-                every_path.c_str());
-      continue;
-    }
-
-    // get files in path and sub-path
-    GetPathFiles(every_path, file_vec);
-  }
-
-}
-
-bool GeneralImage::IsDirectory(const string &path) {
-  // get path stat
-  struct stat buf;
-  if (stat(path.c_str(), &buf) != kStatSuccess) {
-    return false;
-  }
-
-  // check
-  if (S_ISDIR(buf.st_mode)) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-bool GeneralImage::IsPathExist(const string &path) {
-  ifstream file(path);
-  if (!file) {
-    return false;
-  }
-  return true;
-}
-
-void GeneralImage::SplitPath(const string &path, vector<string> &path_vec) {
-  char *char_path = const_cast<char*>(path.c_str());
-  const char *char_split = kImagePathSeparator.c_str();
-  char *tmp_path = strtok(char_path, char_split);
-  while (tmp_path) {
-    path_vec.emplace_back(tmp_path);
-    tmp_path = strtok(nullptr, char_split);
-
-  }
-}
-
-void GeneralImage::GetPathFiles(const string &path, vector<string> &file_vec) {
-  struct dirent *dirent_ptr = nullptr;
-  DIR *dir = nullptr;
-  if (IsDirectory(path)) {
-    dir = opendir(path.c_str());
-    while ((dirent_ptr = readdir(dir)) != nullptr) {
-      // skip . and ..
-      if (dirent_ptr->d_name[0] == '.') {
-        continue;
-      }
-
-      // file path
-      string full_path = path + kPathSeparator + dirent_ptr->d_name;
-      // directory need recursion
-      if (IsDirectory(full_path)) {
-        GetPathFiles(full_path, file_vec);
-      } else {
-        // put file
-        file_vec.emplace_back(full_path);
-      }
-    }
-  } else {
-    file_vec.emplace_back(path);
-  }
 }
 
 bool GeneralImage::ArrangeImageInfo(shared_ptr<EngineTrans> &image_handle,
@@ -221,67 +141,45 @@ bool GeneralImage::SendToEngine(const shared_ptr<EngineTrans> &image_handle) {
 
 HIAI_IMPL_ENGINE_PROCESS("general_image",
     GeneralImage, INPUT_SIZE) {
-  HIAI_StatusT ret = HIAI_OK;
-
-  // Step1: check arg0
-  if (arg0 == nullptr) {
-    ERROR_LOG("Failed to deal file=nothing. Reason: arg0 is empty.");
-    return HIAI_ERROR;
-  }
-
-  // Step2: get all files
-  shared_ptr<ConsoleParams> console_param = static_pointer_cast<ConsoleParams>(
-      arg0);
-  string input_path = string(console_param->input_path);
-  vector<string> file_vec;
-  GetAllFiles(input_path, file_vec);
-  if (file_vec.empty()) {
-    ERROR_LOG("Failed to deal all empty path=%s.", input_path.c_str());
-    return HIAI_ERROR;
-  }
-
+      
+  string path = "test.png";
   // Step3: send every image to inference engine
-  for (string path : file_vec) {
-    shared_ptr<EngineTrans> image_handle = nullptr;
-    MAKE_SHARED_NO_THROW(image_handle, EngineTrans);
-    if (image_handle == nullptr) {
-      ERROR_LOG("Failed to deal file=%s. Reason: new EngineTrans failed.",
-                path.c_str());
-      continue;
-    }
-    // arrange image information, if failed, skip this image
-    if (!ArrangeImageInfo(image_handle, path)) {
-      continue;
-    }
-
-    // send data to inference engine
-    image_handle->console_params.input_path = console_param->input_path;
-    image_handle->console_params.model_height = console_param->model_height;
-    image_handle->console_params.model_width = console_param->model_width;
-    image_handle->console_params.output_nums = console_param->output_nums;
-    image_handle->console_params.output_path = console_param->output_path;
-    if (!SendToEngine(image_handle)) {
-      ERROR_LOG("Failed to deal file=%s. Reason: send data failed.",
-                path.c_str());
-      continue;
-    }
-
-    // sleep
-    usleep(kSleepInterval);
-  }
-
-  // Step4: send finished data
   shared_ptr<EngineTrans> image_handle = nullptr;
   MAKE_SHARED_NO_THROW(image_handle, EngineTrans);
   if (image_handle == nullptr) {
+    ERROR_LOG("Failed to deal file=%s. Reason: new EngineTrans failed.",
+              path.c_str());
+    return HIAI_ERROR;
+  }
+  // arrange image information, if failed, skip this image
+  if (!ArrangeImageInfo(image_handle, path)) {
+    return HIAI_ERROR;
+  }
+
+  // send data to inference engine
+  image_handle->console_params.input_path = "test.png";
+  image_handle->console_params.model_height = 188;
+  image_handle->console_params.model_width = 623;
+  image_handle->console_params.output_path = "./";
+  if (!SendToEngine(image_handle)) {
+    ERROR_LOG("Failed to deal file=%s. Reason: send data failed.",
+              path.c_str());
+    return HIAI_ERROR;
+  }
+
+
+  // Step4: send finished data
+  shared_ptr<EngineTrans> image_handle2 = nullptr;
+  MAKE_SHARED_NO_THROW(image_handle2, EngineTrans);
+  if (image_handle2 == nullptr) {
     ERROR_LOG("Failed to send finish data. Reason: new EngineTrans failed.");
     ERROR_LOG("Please stop this process manually.");
     return HIAI_ERROR;
   }
 
-  image_handle->is_finished = true;
+  image_handle2->is_finished = true;
 
-  if (SendToEngine(image_handle)) {
+  if (SendToEngine(image_handle2)) {
     return HIAI_OK;
   }
   ERROR_LOG("Failed to send finish data. Reason: SendData failed.");

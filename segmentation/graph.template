@@ -9,6 +9,67 @@ graphs {
     thread_num: 1
     so_name: "./libgeneral_image.so"
     ai_config {
+
+      items {
+        name: "path"
+        value: "../../../../HIAI_DATANDMODELSET/ascend_workspace/camera_datasets/"
+      }
+
+      items {
+        name: "dataType"
+        value: "Camera"
+      }
+
+      items {
+        name: "data_source"
+        value: "Channel-1"
+      }
+
+      items {
+        name: "fps"
+        value: "5"
+      }
+
+      items {
+        name: "image_format"
+        value: "YUV420SP"
+      }
+
+      items {
+        name: "image_size"
+        value: "623x188"
+      }
+
+      items {
+        name: "meanOfG"
+        value: ""
+      }
+
+      items {
+        name: "meanOfR"
+        value: ""
+      }
+
+      items {
+        name: "batch"
+        value: "1"
+      }
+
+      items {
+        name: "useAll"
+        value: "all"
+      }
+
+      items {
+        name: "randomNumber"
+        value: "All"
+      }
+
+      items {
+        name: "target"
+        value: "OI"
+      }
+
     }
   }
 
@@ -23,7 +84,7 @@ graphs {
 
       items {
         name: "model_path"
-        value: "${MODEL_PATH}"
+        value: "./kittisegRealTime.om"
       }
 
       items {
