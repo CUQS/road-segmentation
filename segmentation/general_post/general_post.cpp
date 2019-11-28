@@ -54,14 +54,8 @@ const uint32_t kSendDataPort = 0;
 // sleep interval when queue full (unit:microseconds)
 const __useconds_t kSleepInterval = 200000;
 
-// size of output tensor vector should be 1.
-const uint32_t kOutputTensorSize = 1;
-
 // output image prefix
 const string kOutputFilePrefix = "out_";
-
-// output image tensor shape
-const static std::vector<uint32_t> kDimImageOutput = {117124, 2};
 
 // opencv draw label params.
 const string kFileSperator = "/";
@@ -103,59 +97,11 @@ bool GeneralPost::SendSentinel() {
 
 HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result) {
 
-  vector<Output> outputs = result->inference_res;
-  
-  if (outputs.size() != kOutputTensorSize) {
-    ERROR_LOG("Detection output size does not match.");
-    return HIAI_ERROR;
-  }
-
-  /* -----------------------------------------------------
-   * image output
-   * -----------------------------------------------------
-  **/
-  cout << "start get outputs" << endl;
-  float *img_output = reinterpret_cast<float *>(outputs[0].data.get());
-  cout << "convert outputs" << endl;
-  Tensor<float> tensor_imgoutput;
-  bool ret = true;
-  ret = tensor_imgoutput.FromArray(img_output, kDimImageOutput);
-  if (!ret) {
-    ERROR_LOG("Failed to resolve tensor from array.");
-    return HIAI_ERROR;
-  }
-  cout << "get outputs" << endl;
-  /* -----------------------------------------------------
-   * image output
-   * -----------------------------------------------------
-  **/
-
-  cv::Mat mat = cv::imread(result->image_info.path, CV_LOAD_IMAGE_UNCHANGED);
+  cout << "--post-- unsigned char to mat" << endl;
+  uint8_t* pdata = result->image_info.data.get();
+  // cv::Mat mat = cv::imread(result->image_info.path, CV_LOAD_IMAGE_UNCHANGED);
+  cv::Mat mat = cv::Mat(188, 623, CV_8UC1, pdata);
   stringstream sstream;
-  /* -----------------------------------------------------
-   * image output
-   * -----------------------------------------------------
-  **/
-  cout << "start mat change!!" << endl;
-  cv::Vec3b pVec3b;
-  for (int i = 0; i < 188; i++) {
-    for (int j = 0; j < 623; j++) {
-      float resultValue = tensor_imgoutput(i*623+j, 0)*255.0;
-      cv::Vec3b pNow = mat.at<cv::Vec3b>(i, j);
-      pVec3b[0] = (int) (0.4*resultValue+0.6*pNow[0]);
-      pVec3b[1] = pNow[1];
-      pVec3b[2] = (int) (0.4*(255.0-resultValue)+0.6*pNow[2]);
-      if (pVec3b[0]>255) pVec3b[0]=255;
-      if (pVec3b[1]>255) pVec3b[1]=255;
-      if (pVec3b[2]>255) pVec3b[2]=255;
-      mat.at<cv::Vec3b>(i, j) = pVec3b;
-    }
-  }
-  cout << "mat changed!!" << endl;
-  /* -----------------------------------------------------
-   * image output
-   * -----------------------------------------------------
-  **/
 
   int pos = result->image_info.path.find_last_of(kFileSperator);
   string file_name(result->image_info.path.substr(pos + 1));
@@ -164,6 +110,7 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
   sstream << result->console_params.output_path << kFileSperator
           << kOutputFilePrefix << file_name;
   string output_path = sstream.str();
+  cout << "--post-- imwirte: " << output_path << endl;
   save_ret = cv::imwrite(output_path, mat);
   if (!save_ret) {
     ERROR_LOG("Failed to deal file=%s. Reason: save image failed.",
@@ -186,6 +133,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_post", GeneralPost, INPUT_SIZE) {
   // just send to callback function when finished
   shared_ptr<EngineTrans> result = static_pointer_cast<EngineTrans>(arg0);
   if (result->is_finished) {
+    cout << "--post-- finished" << endl;
     if (SendSentinel()) {
       return HIAI_OK;
     }

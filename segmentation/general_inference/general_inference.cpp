@@ -47,14 +47,15 @@ using namespace std;
 using namespace ascend::utils;
 
 namespace {
-// model_path parameter key in graph.config
-const string kModelPathParamKey = "model_path";
 
 // output port (engine port begin with 0)
 const uint32_t kSendDataPort = 0;
 
-// model process timeout
-const uint32_t kAiModelProcessTimeout = 0;
+// level for call DVPP
+const int32_t kDvppToJpegLevel = 100;
+
+// call dvpp success
+const uint32_t kDvppProcSuccess = 0;
 
 // sleep interval when queue full (unit:microseconds)
 const __useconds_t kSleepInterval = 200000;
@@ -64,7 +65,6 @@ const uint32_t kImageInfoLength = 3;
 }
 
 // register custom data type
-HIAI_REGISTER_DATA_TYPE("ConsoleParams", ConsoleParams);
 HIAI_REGISTER_DATA_TYPE("Output", Output);
 HIAI_REGISTER_DATA_TYPE("EngineTrans", EngineTrans);
 
@@ -75,42 +75,6 @@ GeneralInference::GeneralInference() {
 HIAI_StatusT GeneralInference::Init(
     const hiai::AIConfig& config,
     const vector<hiai::AIModelDescription>& model_desc) {
-  HIAI_ENGINE_LOG("Start initialize!");
-
-  // initialize aiModelManager
-  if (ai_model_manager_ == nullptr) {
-    MAKE_SHARED_NO_THROW(ai_model_manager_, hiai::AIModelManager);
-    if (ai_model_manager_ == nullptr) {
-      ERROR_LOG("Failed to initialize AIModelManager.");
-      return HIAI_ERROR;
-    }
-  }
-
-  // get parameters from graph.config
-  // set model path to AI model description
-  hiai::AIModelDescription fd_model_desc;
-  for (int index = 0; index < config.items_size(); index++) {
-    const ::hiai::AIConfigItem& item = config.items(index);
-    // get model path
-    if (item.name() == kModelPathParamKey) {
-      const char* model_path = item.value().data();
-      fd_model_desc.set_path(model_path);
-    }
-    // else: noting need to do
-  }
-
-  // initialize model manager
-  vector<hiai::AIModelDescription> model_desc_vec;
-  model_desc_vec.push_back(fd_model_desc);
-  hiai::AIStatus ret = ai_model_manager_->Init(config, model_desc_vec);
-  // initialize AI model manager failed
-  if (ret != hiai::SUCCESS) {
-    HIAI_ENGINE_LOG(HIAI_GRAPH_INVALID_VALUE, "initialize AI model failed");
-    ERROR_LOG("Failed to initialize AI model.");
-    return HIAI_ERROR;
-  }
-
-  HIAI_ENGINE_LOG("End initialize!");
   return HIAI_OK;
 }
 
@@ -118,7 +82,7 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
                                   ImageData<u_int8_t> &resized_image) {
   // call ez_dvpp to resize image
   DvppBasicVpcPara resize_para;
-  resize_para.input_image_type = INPUT_BGR;
+  resize_para.input_image_type = INPUT_YUV420_SEMI_PLANNER_UV;
 
   // get original image size and set to resize parameter
   int32_t width = image_handle->image_info.width;
@@ -145,7 +109,7 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
   resize_para.dest_resolution.height = dst_height;
 
   // set input image align or not
-  resize_para.is_input_align = false;
+  resize_para.is_input_align = true;
 
   // call
   DvppProcess dvpp_resize_img(resize_para);
@@ -169,48 +133,31 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
   return true;
 }
 
-bool GeneralInference::Inference(
-    const ImageData<u_int8_t> &resized_image,
-    vector<shared_ptr<hiai::IAITensor>> &output_data_vec) {
-  // neural buffer
-  shared_ptr<hiai::AINeuralNetworkBuffer> neural_buf = nullptr;
-  MAKE_SHARED_NO_THROW(neural_buf, hiai::AINeuralNetworkBuffer);
-  if (neural_buf == nullptr) {
+HIAI_StatusT GeneralInference::ConvertImage(const std::shared_ptr<EngineTrans> &image_handle) {
+  uint32_t width = image_handle->image_info.width;
+  uint32_t height = image_handle->image_info.height;
+  uint32_t img_size = image_handle->image_info.size;
+  // parameter
+  ascend::utils::DvppToJpgPara dvpp_to_jpeg_para;
+  dvpp_to_jpeg_para.format = JPGENC_FORMAT_NV12;
+  dvpp_to_jpeg_para.level = kDvppToJpegLevel;
+  dvpp_to_jpeg_para.resolution.height = height;
+  dvpp_to_jpeg_para.resolution.width = width;
+  ascend::utils::DvppProcess dvpp_to_jpeg(dvpp_to_jpeg_para);
+  // call DVPP
+  ascend::utils::DvppOutput dvpp_output;
+  int32_t ret = dvpp_to_jpeg.DvppOperationProc(reinterpret_cast<char*>(image_handle->image_info.data.get()),
+                                                img_size, &dvpp_output);
+
+  // failed, no need to send to presenter
+  if (ret != kDvppProcSuccess) {
     HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "new AINeuralNetworkBuffer failed");
-    return false;
+                    "Failed to convert YUV420SP to JPEG, skip it.");
+    return HIAI_ERROR;
   }
-  neural_buf->SetBuffer((void*) resized_image.data.get(), resized_image.size);
-
-  // input data
-  shared_ptr<hiai::IAITensor> input_data = static_pointer_cast<hiai::IAITensor>(
-      neural_buf);
-  vector<shared_ptr<hiai::IAITensor>> input_data_vec;
-  input_data_vec.push_back(input_data);
-
-  // Call Process
-  // 1. create output tensor
-  hiai::AIContext ai_context;
-  hiai::AIStatus ret = ai_model_manager_->CreateOutputTensor(input_data_vec,
-                                                             output_data_vec);
-  // create failed
-  if (ret != hiai::SUCCESS) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "call CreateOutputTensor failed");
-    return false;
-  }
-
-  // 2. process
-  HIAI_ENGINE_LOG("aiModelManager->Process start!");
-  ret = ai_model_manager_->Process(ai_context, input_data_vec, output_data_vec,
-                                   kAiModelProcessTimeout);
-  // process failed, also need to send data to post process
-  if (ret != hiai::SUCCESS) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT, "call Process failed");
-    return false;
-  }
-  HIAI_ENGINE_LOG("aiModelManager->Process end!");
-  return true;
+  image_handle->image_info.data.reset(dvpp_output.buffer, default_delete<uint8_t[]>());
+  image_handle->image_info.size = dvpp_output.size;
+  return HIAI_OK;
 }
 
 bool GeneralInference::SendToEngine(
@@ -245,37 +192,6 @@ void GeneralInference::SendError(const std::string &err_msg,
   }
 }
 
-bool GeneralInference::SendResult(
-    shared_ptr<EngineTrans> &image_handle,
-    vector<shared_ptr<hiai::IAITensor>> &output_data_vec) {
-
-  for (uint32_t i = 0; i < output_data_vec.size(); i++) {
-    shared_ptr<hiai::AISimpleTensor> result_tensor = static_pointer_cast<
-        hiai::AISimpleTensor>(output_data_vec[i]);
-    Output out;
-    out.size = result_tensor->GetSize();
-    out.data = std::shared_ptr<uint8_t>(new (nothrow) uint8_t[out.size],
-                                        std::default_delete<uint8_t[]>());
-    if (out.data == nullptr) {
-      HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                      "dealing results: new array failed");
-      continue;
-    }
-    errno_t mem_ret = memcpy_s(out.data.get(), out.size,
-                               result_tensor->GetBuffer(),
-                               result_tensor->GetSize());
-    // memory copy failed, skip this result
-    if (mem_ret != EOK) {
-      HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                      "dealing results: memcpy_s() error=%d", mem_ret);
-      continue;
-    }
-    image_handle->inference_res.emplace_back(out);
-  }
-
-  return SendToEngine(image_handle);
-}
-
 HIAI_IMPL_ENGINE_PROCESS("general_inference",
     GeneralInference, INPUT_SIZE) {
   HIAI_StatusT ret = HIAI_OK;
@@ -299,6 +215,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   }
 
   // resize image
+  cout << "--inference-- resize image" << endl;
   ImageData<u_int8_t> resized_image;
   if (!PreProcess(image_handle, resized_image)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
@@ -307,17 +224,18 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
     return HIAI_ERROR;
   }
 
-  // inference
-  vector<shared_ptr<hiai::IAITensor>> output_data;
-  if (!Inference(resized_image, output_data)) {
-    string err_msg = "Failed to deal file=" + image_handle->image_info.path
-        + ". Reason: inference failed.";
-    SendError(err_msg, image_handle);
+  // convert original image to JPEG
+  cout << "--inference-- convert to JPEG" << endl;
+  HIAI_StatusT convert_ret = ConvertImage(image_handle);
+  if (convert_ret != HIAI_OK) {
+    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+                  "Convert YUV Image to Jpeg failed!");
     return HIAI_ERROR;
   }
 
   // send result
-  if (!SendResult(image_handle, output_data)) {
+  cout << "--inference-- send to post engine" << endl;
+  if (!SendToEngine(image_handle)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
         + ". Reason: Inference SendData failed.";
     SendError(err_msg, image_handle);

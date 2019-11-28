@@ -24,6 +24,7 @@ CC := aarch64-linux-gnu-g++
 LNK_FLAGS := \
 	-L$(DDK_HOME)/host/lib/ \
 	-lopencv_world \
+	-lmedia_mini \
 	-shared
 
 INC_DIR = \

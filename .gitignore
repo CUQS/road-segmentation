@@ -1,6 +1,5 @@
 .vscode/*
+.gitignore
 script/ezdvpp/
 segmentation/out/
 *.om
-*.png
-*.png
