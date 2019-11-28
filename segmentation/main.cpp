@@ -56,7 +56,7 @@ namespace {
   // post engine id
   const uint32_t kPostEngineId = 641;
   // graph.config path
-  const string kGraphConfigFilePath = "./graph.config";
+  const string kGraphConfigFilePath = "./graph.template";
 
   // args positon
   const int32_t kModelWidthPos = 1;
@@ -68,9 +68,6 @@ namespace {
   // sleep interval for every image (unit: microseconds)
   const __useconds_t kSleepInterval = 100000;
 }
-
-// register custom data
-HIAI_REGISTER_DATA_TYPE("ConsoleParams", ConsoleParams);
 
 // flag for end
 int flag = 1;
@@ -139,15 +136,9 @@ int main(int argc, char *argv[]) {
   engine_id.engine_id = kFirstEngineId;
   engine_id.port_id = kFirstEnginePortId;
 
-  shared_ptr<ConsoleParams> param_ptr = nullptr;
-  MAKE_SHARED_NO_THROW(param_ptr, ConsoleParams);
-  if (param_ptr == nullptr) {
-    ERROR_LOG("Failed to send data. Reason: new data failed.");
-    return kOtherError;
-  }
-  SetConsoleParams(argv, param_ptr);
-  graph->SendData(engine_id, "ConsoleParams",
-                  static_pointer_cast<void>(param_ptr));
+  std::shared_ptr<std::string> src_data(new std::string);
+  graph->SendData(engine_id, "string",
+                  static_pointer_cast<void>(src_data));
 
   for (;;) {
     // finished, break

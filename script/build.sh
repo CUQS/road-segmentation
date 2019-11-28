@@ -76,11 +76,9 @@ main()
         fi
     done
     
-    cp ${app_path}/run_segmentation.py ${app_path}/segmentation/out 
     cp ${app_path}/segmentation/graph.template ${app_path}/segmentation/out
 
-    cp ${app_path}/to_out/easy_run.sh ${app_path}/segmentation/out
-    cp ${app_path}/to_out/model.om ${app_path}/segmentation/out
+    # cp ${app_path}/to_out/kittisegRealTime.om ${app_path}/segmentation/out
     cp ${app_path}/to_out/test.png ${app_path}/segmentation/out
 
     echo "Finish to Build app."

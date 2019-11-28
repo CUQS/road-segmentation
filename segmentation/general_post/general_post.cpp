@@ -61,10 +61,12 @@ const uint32_t kOutputTensorSize = 1;
 const string kOutputFilePrefix = "out_";
 
 // output image tensor shape
-const static std::vector<uint32_t> kDimImageOutput = {465750, 2};
+const static std::vector<uint32_t> kDimImageOutput = {117124, 2};
 
 // opencv draw label params.
 const string kFileSperator = "/";
+
+}
 
 // register custom data type
 HIAI_REGISTER_DATA_TYPE("EngineTrans", EngineTrans);
@@ -136,9 +138,9 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
   **/
   cout << "start mat change!!" << endl;
   cv::Vec3b pVec3b;
-  for (int i = 0; i < 375; i++) {
-    for (int j = 0; j < 1242; j++) {
-      float resultValue = tensor_imgoutput(i*1242+j, 0)*255.0;
+  for (int i = 0; i < 188; i++) {
+    for (int j = 0; j < 623; j++) {
+      float resultValue = tensor_imgoutput(i*623+j, 0)*255.0;
       cv::Vec3b pNow = mat.at<cv::Vec3b>(i, j);
       pVec3b[0] = (int) (0.4*resultValue+0.6*pNow[0]);
       pVec3b[1] = pNow[1];
