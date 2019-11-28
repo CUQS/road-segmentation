@@ -81,16 +81,6 @@ graphs {
     so_name: "../../../ascend_lib/libascend_ezdvpp.so"
     so_name: "./libgeneral_inference.so"
     ai_config {
-
-      items {
-        name: "model_path"
-        value: "./kittisegRealTime.om"
-      }
-
-      items {
-        name: "batch_size"
-        value: "1"
-      }
     }
   }
 
@@ -101,11 +91,6 @@ graphs {
     thread_num: 1
     so_name: "./libgeneral_post.so"
     ai_config {
-
-      items {
-        name: "output_name"
-        value: "prob"
-      }
     }
   }
 
