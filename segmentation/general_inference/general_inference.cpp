@@ -220,7 +220,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   // resize image
   cout << "--inference-- resize image" << endl;
   ImageData<u_int8_t> resized_image;
-  if (!PreProcess(image_handle)) {
+  if (!PreProcess(image_handle, resized_image)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
         + ". Reason: resize image failed.";
     SendError(err_msg, image_handle);
