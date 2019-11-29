@@ -56,6 +56,12 @@ const uint32_t kSendDataPort = 0;
 // model process timeout
 const uint32_t kAiModelProcessTimeout = 0;
 
+// level for call DVPP
+const int32_t kDvppToJpegLevel = 100;
+
+// call dvpp success
+const uint32_t kDvppProcSuccess = 0;
+
 // sleep interval when queue full (unit:microseconds)
 const __useconds_t kSleepInterval = 200000;
 
@@ -64,7 +70,6 @@ const uint32_t kImageInfoLength = 3;
 }
 
 // register custom data type
-HIAI_REGISTER_DATA_TYPE("ConsoleParams", ConsoleParams);
 HIAI_REGISTER_DATA_TYPE("Output", Output);
 HIAI_REGISTER_DATA_TYPE("EngineTrans", EngineTrans);
 
@@ -118,7 +123,7 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
                                   ImageData<u_int8_t> &resized_image) {
   // call ez_dvpp to resize image
   DvppBasicVpcPara resize_para;
-  resize_para.input_image_type = INPUT_BGR;
+  resize_para.input_image_type = INPUT_YUV420_SEMI_PLANNER_UV;
 
   // get original image size and set to resize parameter
   int32_t width = image_handle->image_info.width;
@@ -131,10 +136,10 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
   // crop parameters, only resize, no need crop, so set original image size
   // set crop left-top point (need even number)
   resize_para.crop_left = 0;
-  resize_para.crop_up = 0;
+  resize_para.crop_up = 264;
   // set crop right-bottom point (need odd number)
-  uint32_t crop_right = ((width >> 1) << 1) - 1;
-  uint32_t crop_down = ((height >> 1) << 1) - 1;
+  uint32_t crop_right = 1247;
+  uint32_t crop_down = 453;
   resize_para.crop_right = crop_right;
   resize_para.crop_down = crop_down;
 
@@ -145,7 +150,7 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
   resize_para.dest_resolution.height = dst_height;
 
   // set input image align or not
-  resize_para.is_input_align = false;
+  resize_para.is_input_align = true;
 
   // call
   DvppProcess dvpp_resize_img(resize_para);
@@ -164,9 +169,34 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
   resized_image.size = dvpp_output.size;
   resized_image.width = dst_width;
   resized_image.height = dst_height;
-  image_handle->image_info.width = dst_width;
-  image_handle->image_info.height = dst_height;
   return true;
+}
+
+HIAI_StatusT GeneralInference::ConvertImage(const std::shared_ptr<EngineTrans> &image_handle) {
+  uint32_t width = image_handle->image_info.width;
+  uint32_t height = image_handle->image_info.height;
+  uint32_t img_size = image_handle->image_info.size;
+  // parameter
+  ascend::utils::DvppToJpgPara dvpp_to_jpeg_para;
+  dvpp_to_jpeg_para.format = JPGENC_FORMAT_NV12;
+  dvpp_to_jpeg_para.level = kDvppToJpegLevel;
+  dvpp_to_jpeg_para.resolution.height = height;
+  dvpp_to_jpeg_para.resolution.width = width;
+  ascend::utils::DvppProcess dvpp_to_jpeg(dvpp_to_jpeg_para);
+  // call DVPP
+  ascend::utils::DvppOutput dvpp_output;
+  int32_t ret = dvpp_to_jpeg.DvppOperationProc(reinterpret_cast<char*>(image_handle->image_info.data.get()),
+                                                img_size, &dvpp_output);
+
+  // failed, no need to send to presenter
+  if (ret != kDvppProcSuccess) {
+    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+                    "Failed to convert YUV420SP to JPEG, skip it.");
+    return HIAI_ERROR;
+  }
+  image_handle->image_info.data.reset(dvpp_output.buffer, default_delete<uint8_t[]>());
+  image_handle->image_info.size = dvpp_output.size;
+  return HIAI_OK;
 }
 
 bool GeneralInference::Inference(
@@ -202,12 +232,11 @@ bool GeneralInference::Inference(
 
   // 2. process
   HIAI_ENGINE_LOG("aiModelManager->Process start");
-  cout << "aiModelManager->Process start\n-----------------------" << endl;
   ret = ai_model_manager_->Process(ai_context, input_data_vec, output_data_vec,
                                    kAiModelProcessTimeout);
   // process failed, also need to send data to post process
   if (ret != hiai::SUCCESS) {
-    cout << "aiModelManager->Process failed!" << endl;
+    cout << "--inference-- aiModelManager->Process failed!" << endl;
     HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT, "call Process failed");
     return false;
   }
@@ -291,7 +320,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   // just send data when finished
   shared_ptr<EngineTrans> image_handle = static_pointer_cast<EngineTrans>(arg0);
   if (image_handle->is_finished) {
-    cout << "image_handle is finished" << endl;
+    cout << "--inference-- image_handle is finished" << endl;
     if (SendToEngine(image_handle)) {
       return HIAI_OK;
     }
@@ -301,6 +330,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   }
 
   // resize image
+  cout << "--inference-- resize image" << endl;
   ImageData<u_int8_t> resized_image;
   if (!PreProcess(image_handle, resized_image)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
@@ -310,6 +340,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   }
 
   // inference
+  cout << "--inference-- inference" << endl;
   vector<shared_ptr<hiai::IAITensor>> output_data;
   if (!Inference(resized_image, output_data)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
@@ -318,7 +349,17 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
     return HIAI_ERROR;
   }
 
+  // convert original image to JPEG
+  // cout << "--inference-- convert to JPEG" << endl;
+  // HIAI_StatusT convert_ret = ConvertImage(image_handle);
+  // if (convert_ret != HIAI_OK) {
+  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+  //                 "Convert YUV Image to Jpeg failed!");
+  //   return HIAI_ERROR;
+  // }
+
   // send result
+  cout << "--inference-- send to post engine" << endl;
   if (!SendResult(image_handle, output_data)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
         + ". Reason: Inference SendData failed.";

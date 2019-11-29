@@ -47,26 +47,25 @@
 using hiai::Engine;
 using namespace std;
 
+// namespace
 namespace {
-// callback port (engine port begin with 0)
-const uint32_t kSendDataPort = 0;
+  // callback port (engine port begin with 0)
+  const uint32_t kSendDataPort = 0;
 
-// sleep interval when queue full (unit:microseconds)
-const __useconds_t kSleepInterval = 200000;
+  // sleep interval when queue full (unit:microseconds)
+  const __useconds_t kSleepInterval = 200000;
 
-// size of output tensor vector should be 1.
-const uint32_t kOutputTensorSize = 1;
+  // size of output tensor vector should be 1.
+  const uint32_t kOutputTensorSize = 1;
 
-// output image prefix
-const string kOutputFilePrefix = "out_";
+  // output image prefix
+  const string kOutputFilePrefix = "out_";
 
-// output image tensor shape  623*188
-const static std::vector<uint32_t> kDimImageOutput = {117124, 2};
+  // output image tensor shape  623*188
+  const static std::vector<uint32_t> kDimImageOutput = {117124, 2};
 
-const string kFileSperator = "/";
-
+  const string kFileSperator = "/";
 }
- // namespace
 
 // register custom data type
 HIAI_REGISTER_DATA_TYPE("EngineTrans", EngineTrans);
@@ -114,9 +113,9 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
    * image output
    * -----------------------------------------------------
   **/
-  cout << "start get outputs" << endl;
+  cout << "--post-- start get outputs" << endl;
   float *img_output = reinterpret_cast<float *>(outputs[0].data.get());
-  cout << "convert outputs" << endl;
+  cout << "--post-- convert outputs" << endl;
   Tensor<float> tensor_imgoutput;
   bool ret = true;
   ret = tensor_imgoutput.FromArray(img_output, kDimImageOutput);
@@ -124,39 +123,44 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
     ERROR_LOG("Failed to resolve tensor from array.");
     return HIAI_ERROR;
   }
-  cout << "get outputs" << endl;
+  cout << "--post-- get outputs" << endl;
   /* -----------------------------------------------------
    * image output
    * -----------------------------------------------------
   **/
-  cout << "unsigned char to mat" << endl;
+  cout << "--post-- unsigned char to mat" << endl;
   uint8_t* pdata = result->image_info.data.get();
-  // cv::Mat mat = cv::imread(result->image_info.path, CV_LOAD_IMAGE_UNCHANGED);
-  cv::Mat mat = cv::Mat(188, 623, CV_8UC3, pdata);
+  cv::Mat yuvImg;
+  yuvImg.create(result->image_info.height*3/2, result->image_info.width, CV_8UC1);
+  memcpy(yuvImg.data, pdata, result->image_info.size);
+  cv::Mat mat;
+  cv::cvtColor(yuvImg, mat, CV_YUV2BGR_I420);
+  // crop image
+  cv::Rect rect(0,172,1246,376);
+  cv::Mat imageCrop = mat(rect);
+  // resize iamge
+  cv::resize(imageCrop, imageCrop, cv::Size(623, 188));
   stringstream sstream;
   /* -----------------------------------------------------
    * image output
    * -----------------------------------------------------
   **/
-  cout << "start mat change" << endl;
+  cout << "--post-- start mat change" << endl;
   cv::Vec3b pVec3b;
   for (int i = 0; i < 188; i++) {
     for (int j = 0; j < 623; j++) {
       float resultValue = tensor_imgoutput(i*623+j, 0)*255.0;
-      cv::Vec3b pNow = mat.at<cv::Vec3b>(i, j);
+      cv::Vec3b pNow = imageCrop.at<cv::Vec3b>(i, j);
       pVec3b[0] = (int) (0.4*resultValue+0.6*pNow[0]);
       pVec3b[1] = pNow[1];
       pVec3b[2] = (int) (0.4*(255.0-resultValue)+0.6*pNow[2]);
       if (pVec3b[0]>255) pVec3b[0]=255;
       if (pVec3b[1]>255) pVec3b[1]=255;
       if (pVec3b[2]>255) pVec3b[2]=255;
-      if (pVec3b[0]<0) pVec3b[0]=0;
-      if (pVec3b[1]<0) pVec3b[1]=0;
-      if (pVec3b[2]<0) pVec3b[2]=0;
-      mat.at<cv::Vec3b>(i, j) = pVec3b;
+      imageCrop.at<cv::Vec3b>(i, j) = pVec3b;
     }
   }
-  cout << "mat changed!!" << endl;
+  // cout << "--post-- mat changed!!" << endl;
   /* -----------------------------------------------------
    * image output
    * -----------------------------------------------------
@@ -169,7 +173,7 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
   sstream << result->console_params.output_path << kFileSperator
           << kOutputFilePrefix << file_name;
   string output_path = sstream.str();
-  save_ret = cv::imwrite(output_path, mat);
+  save_ret = cv::imwrite(output_path, imageCrop);
   if (!save_ret) {
     ERROR_LOG("Failed to deal file=%s. Reason: save image failed.",
               result->image_info.path.c_str());

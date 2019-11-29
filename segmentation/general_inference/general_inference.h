@@ -84,6 +84,8 @@ private:
   // cache AI model parameters
   std::shared_ptr<hiai::AIModelManager> ai_model_manager_;
 
+  HIAI_StatusT ConvertImage(const std::shared_ptr<EngineTrans> &image_handle);
+
   /**
    * @brief: pre-process
    * @param [in]: image_handle: original image
