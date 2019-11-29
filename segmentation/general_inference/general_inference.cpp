@@ -78,8 +78,7 @@ HIAI_StatusT GeneralInference::Init(
   return HIAI_OK;
 }
 
-bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
-                                  ImageData<u_int8_t> &resized_image) {
+bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle, ImageData<u_int8_t> &resized_image) {
   // call ez_dvpp to resize image
   DvppBasicVpcPara resize_para;
   resize_para.input_image_type = INPUT_YUV420_SEMI_PLANNER_UV;
@@ -95,16 +94,22 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
   // crop parameters, only resize, no need crop, so set original image size
   // set crop left-top point (need even number)
   resize_para.crop_left = 0;
-  resize_para.crop_up = 0;
+  resize_para.crop_up = 264;
+  cout << "--inference-- crop_left: " << resize_para.crop_left << endl;
+  cout << "--inference-- crop_up: " << resize_para.crop_up << endl;
   // set crop right-bottom point (need odd number)
-  uint32_t crop_right = ((width >> 1) << 1) - 1;
-  uint32_t crop_down = ((height >> 1) << 1) - 1;
+  uint32_t crop_right = 1247;
+  uint32_t crop_down = 453;
+  cout << "--inference-- crop_right: " << crop_right << endl;
+  cout << "--inference-- crop_down: " << crop_down << endl;
   resize_para.crop_right = crop_right;
   resize_para.crop_down = crop_down;
 
   // set destination resolution ratio (need even number)
   uint32_t dst_width = ((image_handle->console_params.model_width) >> 1) << 1;
   uint32_t dst_height = ((image_handle->console_params.model_height) >> 1) << 1;
+  cout << "--inference-- dst_width: " << dst_width << endl;
+  cout << "--inference-- dst_height: " << dst_height << endl;
   resize_para.dest_resolution.width = dst_width;
   resize_para.dest_resolution.height = dst_height;
 
@@ -128,8 +133,6 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
   resized_image.size = dvpp_output.size;
   resized_image.width = dst_width;
   resized_image.height = dst_height;
-  image_handle->image_info.width = dst_width;
-  image_handle->image_info.height = dst_height;
   return true;
 }
 
@@ -217,7 +220,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   // resize image
   cout << "--inference-- resize image" << endl;
   ImageData<u_int8_t> resized_image;
-  if (!PreProcess(image_handle, resized_image)) {
+  if (!PreProcess(image_handle)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
         + ". Reason: resize image failed.";
     SendError(err_msg, image_handle);
@@ -225,13 +228,13 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   }
 
   // convert original image to JPEG
-  cout << "--inference-- convert to JPEG" << endl;
-  HIAI_StatusT convert_ret = ConvertImage(image_handle);
-  if (convert_ret != HIAI_OK) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                  "Convert YUV Image to Jpeg failed!");
-    return HIAI_ERROR;
-  }
+  // cout << "--inference-- convert to JPEG" << endl;
+  // HIAI_StatusT convert_ret = ConvertImage(image_handle);
+  // if (convert_ret != HIAI_OK) {
+  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+  //                 "Convert YUV Image to Jpeg failed!");
+  //   return HIAI_ERROR;
+  // }
 
   // send result
   cout << "--inference-- send to post engine" << endl;

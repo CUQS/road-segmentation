@@ -92,8 +92,7 @@ private:
    * @param [out]: resized_image: ez_dvpp output image
    * @return: true: success; false: failed
    */
-  bool PreProcess(const std::shared_ptr<EngineTrans> &image_handle,
-                  hiai::ImageData<u_int8_t> &resized_image);
+  bool PreProcess(const std::shared_ptr<EngineTrans> &image_handle, ImageData<u_int8_t> &resized_image);
 
   /**
    * @brief: send result

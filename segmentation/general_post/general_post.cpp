@@ -98,9 +98,19 @@ bool GeneralPost::SendSentinel() {
 HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result) {
 
   cout << "--post-- unsigned char to mat" << endl;
+  // convert image
   uint8_t* pdata = result->image_info.data.get();
-  // cv::Mat mat = cv::imread(result->image_info.path, CV_LOAD_IMAGE_UNCHANGED);
-  cv::Mat mat = cv::Mat(188, 623, CV_8UC1, pdata);
+  cv::Mat yuvImg;
+  yuvImg.create(result->image_info.height*3/2, result->image_info.width, CV_8UC1);
+  memcpy(yuvImg.data, pdata, result->image_info.size);
+  cv::Mat mat;
+  cv::cvtColor(yuvImg, mat, CV_YUV2BGR_I420);
+  // crop image
+  cv::Rect rect(0,172,1246,376);
+  cv::Mat imageCrop = mat(rect);
+  // resize iamge
+  cv::resize(imageCrop, imageCrop, cv::Size(623, 188));
+
   stringstream sstream;
 
   int pos = result->image_info.path.find_last_of(kFileSperator);
@@ -111,7 +121,7 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
           << kOutputFilePrefix << file_name;
   string output_path = sstream.str();
   cout << "--post-- imwirte: " << output_path << endl;
-  save_ret = cv::imwrite(output_path, mat);
+  save_ret = cv::imwrite(output_path, imageCrop);
   if (!save_ret) {
     ERROR_LOG("Failed to deal file=%s. Reason: save image failed.",
               result->image_info.path.c_str());
