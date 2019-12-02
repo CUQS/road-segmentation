@@ -355,7 +355,7 @@ bool GeneralImage::DoCapProcess() {
     else {
       cout << "--image-- send to inference engine" << endl;
       SendToEngine(image_handle);
-      if (read_num >= 21) break;
+      if (read_num >= 81) break;
     }
   }
 

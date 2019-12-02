@@ -68,7 +68,35 @@ HIAI_REGISTER_DATA_TYPE("EngineTrans", EngineTrans);
 HIAI_StatusT GeneralPost::Init(
   const hiai::AIConfig &config,
   const vector<hiai::AIModelDescription> &model_desc) {
-  // do noting
+
+  addrLen = sizeof(struct sockaddr_in);
+  serverAddr.sin_family = PF_INET;
+
+  for (int index = 0; index < config.items_size(); ++index) {
+    const ::hiai::AIConfigItem& item = config.items(index);
+    string name = item.name();
+    string value = item.value();
+
+    if (name == "serverIP") {
+      serverAddr.sin_addr.s_addr = inet_addr(value.data());
+      cout << "--post-- serverIP: " << value.data() << endl;
+    } else if (name == "serverPort") {
+      int serverPort = atoi(value.data());
+      serverAddr.sin_port = htons(serverPort);
+      cout << "--post-- serverPort: " << serverPort << endl;
+    } else {
+      HIAI_ENGINE_LOG("unused config name: %s", name.c_str());
+    }
+  }
+  if ((sokt = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+    cout << "--post-- socket() failed" << endl;
+    return HIAI_ERROR;
+  }
+  if (connect(sokt, (sockaddr*)&serverAddr, addrLen) < 0) {
+    cout << "--post-- connect() failed!" << endl;
+    cout << "--post-- close socket" << endl;
+    close(sokt);
+  }
   return HIAI_OK;
 }
 
@@ -111,22 +139,31 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
   // resize iamge
   cv::resize(imageCrop, imageCrop, cv::Size(623, 188));
 
-  stringstream sstream;
+  // stringstream sstream;
 
-  int pos = result->image_info.path.find_last_of(kFileSperator);
-  string file_name(result->image_info.path.substr(pos + 1));
-  bool save_ret(true);
-  sstream.str("");
-  sstream << result->console_params.output_path << kFileSperator
-          << kOutputFilePrefix << file_name;
-  string output_path = sstream.str();
-  cout << "--post-- imwirte: " << output_path << endl;
-  save_ret = cv::imwrite(output_path, imageCrop);
-  if (!save_ret) {
-    ERROR_LOG("Failed to deal file=%s. Reason: save image failed.",
-              result->image_info.path.c_str());
-    return HIAI_ERROR;
-  }
+  // int pos = result->image_info.path.find_last_of(kFileSperator);
+  // string file_name(result->image_info.path.substr(pos + 1));
+  // bool save_ret(true);
+  // sstream.str("");
+  // sstream << result->console_params.output_path << kFileSperator
+  //         << kOutputFilePrefix << file_name;
+  // string output_path = sstream.str();
+  // cout << "--post-- imwirte: " << output_path << endl;
+  // save_ret = cv::imwrite(output_path, imageCrop);
+  // if (!save_ret) {
+  //   ERROR_LOG("Failed to deal file=%s. Reason: save image failed.",
+  //             result->image_info.path.c_str());
+  //   return HIAI_ERROR;
+  // }
+
+  // send to server
+  int bytes = 0;
+  int image_size = imageCrop.total() * imageCrop.elemSize();
+  // cout << "--post-- send image to server, image_size: " << image_size << endl;
+  if ((bytes = send(sokt, imageCrop.data, image_size, 0)) < 0){
+    close(sokt);
+    cout << "bytes = " << bytes << endl;
+  } 
   
   return HIAI_OK;
 }
@@ -144,6 +181,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_post", GeneralPost, INPUT_SIZE) {
   shared_ptr<EngineTrans> result = static_pointer_cast<EngineTrans>(arg0);
   if (result->is_finished) {
     cout << "--post-- finished" << endl;
+    close(sokt);
     if (SendSentinel()) {
       return HIAI_OK;
     }

@@ -95,21 +95,21 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle, I
   // set crop left-top point (need even number)
   resize_para.crop_left = 0;
   resize_para.crop_up = 264;
-  cout << "--inference-- crop_left: " << resize_para.crop_left << endl;
-  cout << "--inference-- crop_up: " << resize_para.crop_up << endl;
+  // cout << "--inference-- crop_left: " << resize_para.crop_left << endl;
+  // cout << "--inference-- crop_up: " << resize_para.crop_up << endl;
   // set crop right-bottom point (need odd number)
   uint32_t crop_right = 1247;
   uint32_t crop_down = 453;
-  cout << "--inference-- crop_right: " << crop_right << endl;
-  cout << "--inference-- crop_down: " << crop_down << endl;
+  // cout << "--inference-- crop_right: " << crop_right << endl;
+  // cout << "--inference-- crop_down: " << crop_down << endl;
   resize_para.crop_right = crop_right;
   resize_para.crop_down = crop_down;
 
   // set destination resolution ratio (need even number)
   uint32_t dst_width = ((image_handle->console_params.model_width) >> 1) << 1;
   uint32_t dst_height = ((image_handle->console_params.model_height) >> 1) << 1;
-  cout << "--inference-- dst_width: " << dst_width << endl;
-  cout << "--inference-- dst_height: " << dst_height << endl;
+  // cout << "--inference-- dst_width: " << dst_width << endl;
+  // cout << "--inference-- dst_height: " << dst_height << endl;
   resize_para.dest_resolution.width = dst_width;
   resize_para.dest_resolution.height = dst_height;
 

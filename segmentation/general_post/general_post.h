@@ -39,6 +39,9 @@
 #include "hiaiengine/data_type.h"
 #include "data_type.h"
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
 #define INPUT_SIZE 1
 #define OUTPUT_SIZE 1
 
@@ -110,6 +113,7 @@ class Tensor {
  */
 class GeneralPost : public hiai::Engine {
 public:
+
   /**
    * @brief: engine initialize
    * @param [in]: engine's parameters which configured in graph.config
@@ -142,6 +146,10 @@ private:
   HIAI_StatusT ModelPostProcess(
       const std::shared_ptr<EngineTrans> &result);
 
+private:
+  int sokt;
+  struct sockaddr_in serverAddr;
+  socklen_t addrLen;
 };
 
 #endif /* GENERAL_POST_GENERAL_POST_H_ */
