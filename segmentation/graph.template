@@ -103,8 +103,13 @@ graphs {
     ai_config {
 
       items {
-        name: "output_name"
-        value: "prob"
+        name: "serverIP"
+        value: "192.168.1.134"
+      }
+
+      items {
+        name: "serverPort"
+        value: "4097"
       }
     }
   }

@@ -157,7 +157,7 @@ bool GeneralImage::ArrangeImageInfo(shared_ptr<EngineTrans> &image_handle,
   image_handle->image_info.height = mat.rows;
 
   // set image data
-  cout << "--image-- mat.total(): " << mat.total() << endl;
+  // cout << "--image-- mat.total(): " << mat.total() << endl;
   uint32_t size = mat.total() * mat.channels();
   u_int8_t *image_buf_ptr = new (nothrow) u_int8_t[size];
   if (image_buf_ptr == nullptr) {
@@ -166,7 +166,7 @@ bool GeneralImage::ArrangeImageInfo(shared_ptr<EngineTrans> &image_handle,
               image_path.c_str());
     return false;
   }
-  cout << "--image-- copy mat from image" << endl;
+  // cout << "--image-- copy mat from image" << endl;
   error_t mem_ret = memcpy_s(image_buf_ptr, size, mat.ptr<u_int8_t>(),
                              mat.total() * mat.channels());
   if (mem_ret != EOK) {
@@ -271,7 +271,7 @@ GeneralImage::CameraOperationCode GeneralImage::PreCapProcess() {
   cout << "--image-- start prepare camera" << endl;
   MediaLibInit();
   CameraStatus status = QueryCameraStatus(config_->channel_id);
-  cout << "--image-- camera status: " << status << endl;
+  // cout << "--image-- camera status: " << status << endl;
   if (status != CAMERA_STATUS_CLOSED) {
     HIAI_ENGINE_LOG("[CameraDatasets] PreCapProcess.QueryCameraStatus "
                     "{status:%d} failed.",status);
@@ -289,7 +289,7 @@ GeneralImage::CameraOperationCode GeneralImage::PreCapProcess() {
     return kCameraOpenFailed;
   }
   // set fps
-  cout << "--image-- set camera fps" << endl;
+  // cout << "--image-- set camera fps" << endl;
   ret = SetCameraProperty(config_->channel_id, CAMERA_PROP_FPS, &(config_->fps));
   // return 0 indicates failure
   if (ret == 0) {
@@ -299,7 +299,7 @@ GeneralImage::CameraOperationCode GeneralImage::PreCapProcess() {
     return kCameraSetPropeptyFailed;
   }
   // set image format
-  cout << "--image-- set camera image_format" << endl;
+  // cout << "--image-- set camera image_format" << endl;
   ret = SetCameraProperty(config_->channel_id, CAMERA_PROP_IMAGE_FORMAT,
                           &(config_->image_format));
   // return 0 indicates failure
@@ -313,7 +313,7 @@ GeneralImage::CameraOperationCode GeneralImage::PreCapProcess() {
   CameraResolution resolution;
   resolution.width = config_->resolution_width;
   resolution.height = config_->resolution_height;
-  cout << "--image-- set camera image resolution" << endl;
+  // cout << "--image-- set camera image resolution" << endl;
   ret = SetCameraProperty(config_->channel_id, CAMERA_PROP_RESOLUTION,
                           &resolution);
   // return 0 indicates failure
@@ -327,7 +327,7 @@ GeneralImage::CameraOperationCode GeneralImage::PreCapProcess() {
 
   // set work mode
   CameraCapMode mode = CAMERA_CAP_ACTIVE;
-  cout << "--image-- set camera work mode" << endl;
+  // cout << "--image-- set camera work mode" << endl;
   ret = SetCameraProperty(config_->channel_id, CAMERA_PROP_CAP_MODE, &mode);
   // return 0 indicates failure
   if (ret == 0) {
@@ -350,7 +350,7 @@ bool GeneralImage::DoCapProcess() {
     return false;
   }
   // set procedure is running.
-  cout << "--image-- set camera procedure is running" << endl;
+  // cout << "--image-- set camera procedure is running" << endl;
   SetExitFlag (CAMERADATASETS_RUN);
 
   int read_ret = 0;
@@ -398,7 +398,7 @@ bool GeneralImage::DoCapProcess() {
     else {
       cout << "--image-- send to inference engine" << endl;
       SendToEngine(image_handle);
-      if (read_num >= 20) break;
+      if (read_num >= 81) break;
     }
   }
 

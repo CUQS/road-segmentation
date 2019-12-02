@@ -320,7 +320,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   // just send data when finished
   shared_ptr<EngineTrans> image_handle = static_pointer_cast<EngineTrans>(arg0);
   if (image_handle->is_finished) {
-    cout << "--inference-- image_handle is finished" << endl;
+    // cout << "--inference-- image_handle is finished" << endl;
     if (SendToEngine(image_handle)) {
       return HIAI_OK;
     }
@@ -330,7 +330,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   }
 
   // resize image
-  cout << "--inference-- resize image" << endl;
+  // cout << "--inference-- resize image" << endl;
   ImageData<u_int8_t> resized_image;
   if (!PreProcess(image_handle, resized_image)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
@@ -340,7 +340,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   }
 
   // inference
-  cout << "--inference-- inference" << endl;
+  // cout << "--inference-- inference" << endl;
   vector<shared_ptr<hiai::IAITensor>> output_data;
   if (!Inference(resized_image, output_data)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
@@ -359,7 +359,7 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   // }
 
   // send result
-  cout << "--inference-- send to post engine" << endl;
+  // cout << "--inference-- send to post engine" << endl;
   if (!SendResult(image_handle, output_data)) {
     string err_msg = "Failed to deal file=" + image_handle->image_info.path
         + ". Reason: Inference SendData failed.";

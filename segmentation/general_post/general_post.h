@@ -39,6 +39,9 @@
 #include "hiaiengine/data_type.h"
 #include "data_type.h"
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
 #define INPUT_SIZE 1
 #define OUTPUT_SIZE 1
 
@@ -141,6 +144,11 @@ private:
    */
   HIAI_StatusT ModelPostProcess(
       const std::shared_ptr<EngineTrans> &result);
+
+private:
+  int sokt;
+  struct sockaddr_in serverAddr;
+  socklen_t addrLen;
 
 };
 

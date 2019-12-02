@@ -73,7 +73,34 @@ HIAI_REGISTER_DATA_TYPE("EngineTrans", EngineTrans);
 HIAI_StatusT GeneralPost::Init(
   const hiai::AIConfig &config,
   const vector<hiai::AIModelDescription> &model_desc) {
-  // do noting
+  addrLen = sizeof(struct sockaddr_in);
+  serverAddr.sin_family = PF_INET;
+
+  for (int index = 0; index < config.items_size(); ++index) {
+    const ::hiai::AIConfigItem& item = config.items(index);
+    string name = item.name();
+    string value = item.value();
+
+    if (name == "serverIP") {
+      serverAddr.sin_addr.s_addr = inet_addr(value.data());
+      cout << "--post-- serverIP: " << value.data() << endl;
+    } else if (name == "serverPort") {
+      int serverPort = atoi(value.data());
+      serverAddr.sin_port = htons(serverPort);
+      cout << "--post-- serverPort: " << serverPort << endl;
+    } else {
+      HIAI_ENGINE_LOG("unused config name: %s", name.c_str());
+    }
+  }
+  if ((sokt = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+    cout << "--post-- socket() failed" << endl;
+    return HIAI_ERROR;
+  }
+  if (connect(sokt, (sockaddr*)&serverAddr, addrLen) < 0) {
+    cout << "--post-- connect() failed!" << endl;
+    cout << "--post-- close socket" << endl;
+    close(sokt);
+  }
   return HIAI_OK;
 }
 
@@ -113,9 +140,9 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
    * image output
    * -----------------------------------------------------
   **/
-  cout << "--post-- start get outputs" << endl;
+  // cout << "--post-- start get outputs" << endl;
   float *img_output = reinterpret_cast<float *>(outputs[0].data.get());
-  cout << "--post-- convert outputs" << endl;
+  // cout << "--post-- convert outputs" << endl;
   Tensor<float> tensor_imgoutput;
   bool ret = true;
   ret = tensor_imgoutput.FromArray(img_output, kDimImageOutput);
@@ -123,12 +150,12 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
     ERROR_LOG("Failed to resolve tensor from array.");
     return HIAI_ERROR;
   }
-  cout << "--post-- get outputs" << endl;
+  // cout << "--post-- get outputs" << endl;
   /* -----------------------------------------------------
    * image output
    * -----------------------------------------------------
   **/
-  cout << "--post-- unsigned char to mat" << endl;
+  // cout << "--post-- unsigned char to mat" << endl;
   uint8_t* pdata = result->image_info.data.get();
   cv::Mat yuvImg;
   yuvImg.create(result->image_info.height*3/2, result->image_info.width, CV_8UC1);
@@ -145,7 +172,7 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
    * image output
    * -----------------------------------------------------
   **/
-  cout << "--post-- start mat change" << endl;
+  // cout << "--post-- start mat change" << endl;
   cv::Vec3b pVec3b;
   for (int i = 0; i < 188; i++) {
     for (int j = 0; j < 623; j++) {
@@ -166,19 +193,27 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
    * -----------------------------------------------------
   **/
 
-  int pos = result->image_info.path.find_last_of(kFileSperator);
-  string file_name(result->image_info.path.substr(pos + 1));
-  bool save_ret(true);
-  sstream.str("");
-  sstream << result->console_params.output_path << kFileSperator
-          << kOutputFilePrefix << file_name;
-  string output_path = sstream.str();
-  save_ret = cv::imwrite(output_path, imageCrop);
-  if (!save_ret) {
-    ERROR_LOG("Failed to deal file=%s. Reason: save image failed.",
-              result->image_info.path.c_str());
-    return HIAI_ERROR;
-  }
+  // int pos = result->image_info.path.find_last_of(kFileSperator);
+  // string file_name(result->image_info.path.substr(pos + 1));
+  // bool save_ret(true);
+  // sstream.str("");
+  // sstream << result->console_params.output_path << kFileSperator
+  //         << kOutputFilePrefix << file_name;
+  // string output_path = sstream.str();
+  // save_ret = cv::imwrite(output_path, imageCrop);
+  // if (!save_ret) {
+  //   ERROR_LOG("Failed to deal file=%s. Reason: save image failed.",
+  //             result->image_info.path.c_str());
+  //   return HIAI_ERROR;
+  // }
+  int bytes = 0;
+  int image_size = imageCrop.total() * imageCrop.elemSize();
+  cout << "--post-- send image to server, image_size: " << image_size << endl;
+  if ((bytes = send(sokt, imageCrop.data, image_size, 0)) < 0){
+    close(sokt);
+    cout << "bytes = " << bytes << endl;
+  } 
+
   
   return HIAI_OK;
 }
@@ -195,6 +230,8 @@ HIAI_IMPL_ENGINE_PROCESS("general_post", GeneralPost, INPUT_SIZE) {
   // just send to callback function when finished
   shared_ptr<EngineTrans> result = static_pointer_cast<EngineTrans>(arg0);
   if (result->is_finished) {
+    cout << "--post-- finished" << endl;
+    close(sokt);
     if (SendSentinel()) {
       return HIAI_OK;
     }
