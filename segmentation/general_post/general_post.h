@@ -138,12 +138,18 @@ private:
   bool SendSentinel();
 
   /**
-   * @brief: mark the oject based on detection result
+   * @brief: mark the oject based on segmentation result (cap)
    * @param [in]: result: engine transform image
    * @return: HIAI_StatusT
    */
-  HIAI_StatusT ModelPostProcess(
-      const std::shared_ptr<EngineTrans> &result);
+  HIAI_StatusT ModelPostProcessCap(const std::shared_ptr<EngineTrans> &result);
+
+  /**
+   * @brief: mark the oject based on segmentation result (picture)
+   * @param [in]: result: engine transform image
+   * @return: HIAI_StatusT
+   */
+  HIAI_StatusT ModelPostProcessPic(const std::shared_ptr<EngineTrans> &result);
 
 private:
   int sokt;

@@ -24,12 +24,12 @@ conn, addr = server.accept()
 print("connected, ", addr)
 print("wait info...")
 cv2.namedWindow("img", cv2.WINDOW_NORMAL)
-count = 60
+count = 200
 while count:
     stringData = recv_size(conn, buf_size)
     # data convert
     data = np.frombuffer(stringData, np.uint8)
-    data = np.reshape(data, (188,623,3))
+    data = data.reshape(188,623,3)
     cv2.imshow("img", data)
     cv2.waitKey(10)
     count -= 1

@@ -67,6 +67,7 @@ struct ImageInfo {
   int32_t width = 0; // original width
   int32_t height = 0; // original height
   int32_t size = 0; // data size
+  int32_t mode = 0; // 0 cap, 1 pic
   std::shared_ptr<u_int8_t> data;
 };
 

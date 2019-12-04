@@ -127,7 +127,7 @@ bool GeneralPost::SendSentinel() {
   return true;
 }
 
-HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result) {
+HIAI_StatusT GeneralPost::ModelPostProcessCap(const shared_ptr<EngineTrans> &result) {
 
   vector<Output> outputs = result->inference_res;
   
@@ -135,11 +135,6 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
     ERROR_LOG("Detection output size does not match.");
     return HIAI_ERROR;
   }
-
-  /* -----------------------------------------------------
-   * image output
-   * -----------------------------------------------------
-  **/
   // cout << "--post-- start get outputs" << endl;
   float *img_output = reinterpret_cast<float *>(outputs[0].data.get());
   // cout << "--post-- convert outputs" << endl;
@@ -151,27 +146,20 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
     return HIAI_ERROR;
   }
   // cout << "--post-- get outputs" << endl;
-  /* -----------------------------------------------------
-   * image output
-   * -----------------------------------------------------
-  **/
   // cout << "--post-- unsigned char to mat" << endl;
   uint8_t* pdata = result->image_info.data.get();
   cv::Mat yuvImg;
   yuvImg.create(result->image_info.height*3/2, result->image_info.width, CV_8UC1);
   memcpy(yuvImg.data, pdata, result->image_info.size);
   cv::Mat mat;
-  cv::cvtColor(yuvImg, mat, CV_YUV2BGR_I420);
+  cv::cvtColor(yuvImg, mat, CV_YUV2RGB_NV21);
   // crop image
   cv::Rect rect(0,172,1246,376);
   cv::Mat imageCrop = mat(rect);
   // resize iamge
   cv::resize(imageCrop, imageCrop, cv::Size(623, 188));
   stringstream sstream;
-  /* -----------------------------------------------------
-   * image output
-   * -----------------------------------------------------
-  **/
+
   // cout << "--post-- start mat change" << endl;
   cv::Vec3b pVec3b;
   for (int i = 0; i < 188; i++) {
@@ -188,33 +176,62 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
     }
   }
   // cout << "--post-- mat changed!!" << endl;
-  /* -----------------------------------------------------
-   * image output
-   * -----------------------------------------------------
-  **/
-
-  // int pos = result->image_info.path.find_last_of(kFileSperator);
-  // string file_name(result->image_info.path.substr(pos + 1));
-  // bool save_ret(true);
-  // sstream.str("");
-  // sstream << result->console_params.output_path << kFileSperator
-  //         << kOutputFilePrefix << file_name;
-  // string output_path = sstream.str();
-  // save_ret = cv::imwrite(output_path, imageCrop);
-  // if (!save_ret) {
-  //   ERROR_LOG("Failed to deal file=%s. Reason: save image failed.",
-  //             result->image_info.path.c_str());
-  //   return HIAI_ERROR;
-  // }
   int bytes = 0;
   int image_size = imageCrop.total() * imageCrop.elemSize();
-  cout << "--post-- send image to server, image_size: " << image_size << endl;
+  // cout << "--post-- send image to server, image_size: " << image_size << endl;
   if ((bytes = send(sokt, imageCrop.data, image_size, 0)) < 0){
     close(sokt);
     cout << "bytes = " << bytes << endl;
-  } 
+  }
+  return HIAI_OK;
+}
 
+HIAI_StatusT GeneralPost::ModelPostProcessPic(const shared_ptr<EngineTrans> &result) {
+
+  vector<Output> outputs = result->inference_res;
   
+  if (outputs.size() != kOutputTensorSize) {
+    ERROR_LOG("Detection output size does not match.");
+    return HIAI_ERROR;
+  }
+  // cout << "start get outputs" << endl;
+  float *img_output = reinterpret_cast<float *>(outputs[0].data.get());
+  // cout << "convert outputs" << endl;
+  Tensor<float> tensor_imgoutput;
+  bool ret = true;
+  ret = tensor_imgoutput.FromArray(img_output, kDimImageOutput);
+  if (!ret) {
+    ERROR_LOG("Failed to resolve tensor from array.");
+    return HIAI_ERROR;
+  }
+  // cout << "get outputs" << endl;
+
+  cv::Mat mat = cv::imread(result->image_info.path, CV_LOAD_IMAGE_UNCHANGED);
+  stringstream sstream;
+
+  // cout << "start mat change!!" << endl;
+  cv::Vec3b pVec3b;
+  for (int i = 0; i < 188; i++) {
+    for (int j = 0; j < 623; j++) {
+      float resultValue = tensor_imgoutput(i*623+j, 0)*255.0;
+      cv::Vec3b pNow = mat.at<cv::Vec3b>(i, j);
+      pVec3b[0] = (int) (0.4*resultValue+0.6*pNow[0]);
+      pVec3b[1] = pNow[1];
+      pVec3b[2] = (int) (0.4*(255.0-resultValue)+0.6*pNow[2]);
+      if (pVec3b[0]>255) pVec3b[0]=255;
+      if (pVec3b[1]>255) pVec3b[1]=255;
+      if (pVec3b[2]>255) pVec3b[2]=255;
+      mat.at<cv::Vec3b>(i, j) = pVec3b;
+    }
+  }
+  // cout << "mat changed!!" << endl;
+  int bytes = 0;
+  int image_size = mat.total() * mat.elemSize();
+  // cout << "--post-- send image to server, image_size: " << image_size << endl;
+  if ((bytes = send(sokt, mat.data, image_size, 0)) < 0){
+    close(sokt);
+    cout << "bytes = " << bytes << endl;
+  }
   return HIAI_OK;
 }
 
@@ -245,7 +262,12 @@ HIAI_IMPL_ENGINE_PROCESS("general_post", GeneralPost, INPUT_SIZE) {
     ERROR_LOG("%s", result->err_msg.err_msg.c_str());
     return HIAI_ERROR;
   }
-
   // arrange result
-  return ModelPostProcess(result);
+  if (result->image_info.mode==0) {
+    return ModelPostProcessCap(result);
+  }
+  else {
+    return ModelPostProcessPic(result);
+  }
+  return HIAI_ERROR;
 }

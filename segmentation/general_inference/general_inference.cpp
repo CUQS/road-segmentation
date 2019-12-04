@@ -119,7 +119,7 @@ HIAI_StatusT GeneralInference::Init(
   return HIAI_OK;
 }
 
-bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
+bool GeneralInference::PreProcessCap(const shared_ptr<EngineTrans> &image_handle,
                                   ImageData<u_int8_t> &resized_image) {
   // call ez_dvpp to resize image
   DvppBasicVpcPara resize_para;
@@ -172,31 +172,59 @@ bool GeneralInference::PreProcess(const shared_ptr<EngineTrans> &image_handle,
   return true;
 }
 
-HIAI_StatusT GeneralInference::ConvertImage(const std::shared_ptr<EngineTrans> &image_handle) {
-  uint32_t width = image_handle->image_info.width;
-  uint32_t height = image_handle->image_info.height;
-  uint32_t img_size = image_handle->image_info.size;
-  // parameter
-  ascend::utils::DvppToJpgPara dvpp_to_jpeg_para;
-  dvpp_to_jpeg_para.format = JPGENC_FORMAT_NV12;
-  dvpp_to_jpeg_para.level = kDvppToJpegLevel;
-  dvpp_to_jpeg_para.resolution.height = height;
-  dvpp_to_jpeg_para.resolution.width = width;
-  ascend::utils::DvppProcess dvpp_to_jpeg(dvpp_to_jpeg_para);
-  // call DVPP
-  ascend::utils::DvppOutput dvpp_output;
-  int32_t ret = dvpp_to_jpeg.DvppOperationProc(reinterpret_cast<char*>(image_handle->image_info.data.get()),
-                                                img_size, &dvpp_output);
+bool GeneralInference::PreProcessPicture(const shared_ptr<EngineTrans> &image_handle,
+                                  ImageData<u_int8_t> &resized_image) {
+  // call ez_dvpp to resize image
+  DvppBasicVpcPara resize_para;
+  resize_para.input_image_type = INPUT_BGR;
 
-  // failed, no need to send to presenter
-  if (ret != kDvppProcSuccess) {
+  // get original image size and set to resize parameter
+  int32_t width = image_handle->image_info.width;
+  int32_t height = image_handle->image_info.height;
+
+  // set source resolution ratio
+  resize_para.src_resolution.width = width;
+  resize_para.src_resolution.height = height;
+
+  // crop parameters, only resize, no need crop, so set original image size
+  // set crop left-top point (need even number)
+  resize_para.crop_left = 0;
+  resize_para.crop_up = 0;
+  // set crop right-bottom point (need odd number)
+  uint32_t crop_right = ((width >> 1) << 1) - 1;
+  uint32_t crop_down = ((height >> 1) << 1) - 1;
+  resize_para.crop_right = crop_right;
+  resize_para.crop_down = crop_down;
+
+  // set destination resolution ratio (need even number)
+  uint32_t dst_width = ((image_handle->console_params.model_width) >> 1) << 1;
+  uint32_t dst_height = ((image_handle->console_params.model_height) >> 1) << 1;
+  resize_para.dest_resolution.width = dst_width;
+  resize_para.dest_resolution.height = dst_height;
+
+  // set input image align or not
+  resize_para.is_input_align = false;
+
+  // call
+  DvppProcess dvpp_resize_img(resize_para);
+  DvppVpcOutput dvpp_output;
+  int ret = dvpp_resize_img.DvppBasicVpcProc(
+      image_handle->image_info.data.get(), image_handle->image_info.size,
+      &dvpp_output);
+  if (ret != kDvppOperationOk) {
     HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "Failed to convert YUV420SP to JPEG, skip it.");
-    return HIAI_ERROR;
+                    "call ez_dvpp failed, failed to resize image.");
+    return false;
   }
-  image_handle->image_info.data.reset(dvpp_output.buffer, default_delete<uint8_t[]>());
-  image_handle->image_info.size = dvpp_output.size;
-  return HIAI_OK;
+
+  // call success, set data and size
+  resized_image.data.reset(dvpp_output.buffer, default_delete<u_int8_t[]>());
+  resized_image.size = dvpp_output.size;
+  resized_image.width = dst_width;
+  resized_image.height = dst_height;
+  image_handle->image_info.width = dst_width;
+  image_handle->image_info.height = dst_height;
+  return true;
 }
 
 bool GeneralInference::Inference(
@@ -332,12 +360,23 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
   // resize image
   // cout << "--inference-- resize image" << endl;
   ImageData<u_int8_t> resized_image;
-  if (!PreProcess(image_handle, resized_image)) {
-    string err_msg = "Failed to deal file=" + image_handle->image_info.path
-        + ". Reason: resize image failed.";
-    SendError(err_msg, image_handle);
-    return HIAI_ERROR;
+  if (image_handle->image_info.mode==0) {
+    if (!PreProcessCap(image_handle, resized_image)) {
+      string err_msg = "Failed to deal file=" + image_handle->image_info.path
+          + ". Reason: resize image failed.";
+      SendError(err_msg, image_handle);
+      return HIAI_ERROR;
+    }
   }
+  else {
+    if (!PreProcessPicture(image_handle, resized_image)) {
+      string err_msg = "Failed to deal file=" + image_handle->image_info.path
+          + ". Reason: resize image failed.";
+      SendError(err_msg, image_handle);
+      return HIAI_ERROR;
+    }
+  }
+  
 
   // inference
   // cout << "--inference-- inference" << endl;
@@ -348,15 +387,6 @@ HIAI_IMPL_ENGINE_PROCESS("general_inference",
     SendError(err_msg, image_handle);
     return HIAI_ERROR;
   }
-
-  // convert original image to JPEG
-  // cout << "--inference-- convert to JPEG" << endl;
-  // HIAI_StatusT convert_ret = ConvertImage(image_handle);
-  // if (convert_ret != HIAI_OK) {
-  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-  //                 "Convert YUV Image to Jpeg failed!");
-  //   return HIAI_ERROR;
-  // }
 
   // send result
   // cout << "--inference-- send to post engine" << endl;

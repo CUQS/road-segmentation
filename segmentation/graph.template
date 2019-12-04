@@ -11,6 +11,11 @@ graphs {
     ai_config {
 
       items {
+        name: "mode"
+        value: "1"
+      }
+
+      items {
         name: "path"
         value: "../../../../HIAI_DATANDMODELSET/ascend_workspace/camera_datasets/"
       }
@@ -68,6 +73,11 @@ graphs {
       items {
         name: "target"
         value: "OI"
+      }
+
+      items {
+        name: "image_num"
+        value: "200"
       }
 
     }

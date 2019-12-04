@@ -70,6 +70,8 @@ public:
     int image_format;
     int resolution_width;
     int resolution_height;
+    int image_num;
+    int mode;
     std::string ToString() const;
   };
 
@@ -148,6 +150,12 @@ private:
    * @return  success-->true ; fail-->false
    */
   bool DoCapProcess();
+
+  /**
+   * @brief  picture
+   * @return  success-->true ; fail-->false
+   */
+  bool DoPictureProcess();
 
   /**
    * @brief   preprocess for cap camera

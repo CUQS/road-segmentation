@@ -119,26 +119,12 @@
 
 2.  进入faster-rcnn检测网络应用的可执行文件所在路径。
 
-    **cd \~/HIAI\_PROJECTS/ascend\_workspace/objectdetection/out**
+    **cd \~/HIAI\_PROJECTS/ascend\_workspace/segmentation/out**
 
 3.  执行应用程序。
 
-    执行**run\_object\_detection\_faster\_rcnn.py**脚本会将推理生成的图片保存至指定路径。
+    执行./ascend_segmentation
 
-    命令示例如下所示：
-
-    **python3 run\_object\_detection\_faster\_rcnn.py -m  _\~/models/faster\_rcnn.om_  -w  _800_  -h  _600_  -i**
-
-    **_./example.jpg_  -o  _./out_  -c** _21_
-
-    -   -m/--model\_path：离线模型路径。
-    -   -w/model\_width：模型的输入图片宽度，为16\~4096之间的整数。
-    -   -h/model\_height：模型的输入图片高度，为16\~4096之间的整数。
-    -   -i/input\_path：输入图片的目录/路径，可以有多个输入。
-    -   -o/output\_path：输出图片的目录，默认为当前目录。
-    -   -c/output\_categories：faster\_rcnn检测的类别数\(包含背景\)，为2\~32之间的整数，默认为值为21。
-
-4.  其他详细参数请执行**python3 run\_object\_detection\_faster\_rcnn.py --help**命令参见帮助信息。
 
 ## 公共代码库下载<a name="zh-cn_topic_0182554604_section92241245122511"></a>
 

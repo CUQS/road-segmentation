@@ -113,6 +113,10 @@ HIAI_StatusT GeneralImage::Init(
     } else if (name == "image_size") {
       ParseImageSize(value, config_->resolution_width,
                      config_->resolution_height);
+    } else if (name == "image_num") {
+      config_->image_num = atoi(value.data());
+    } else if (name == "mode") {
+      config_->mode = atoi(value.data());
     } else {
       HIAI_ENGINE_LOG("unused config name: %s", name.c_str());
     }
@@ -369,6 +373,7 @@ bool GeneralImage::DoCapProcess() {
     image_handle->image_info.width = config_->resolution_width;
     image_handle->image_info.height = config_->resolution_height;
     image_handle->image_info.size = config_->resolution_width * config_->resolution_height * 3 / 2;
+    image_handle->image_info.mode = config_->mode;
     shared_ptr <uint8_t> data(new uint8_t[image_handle->image_info.size], default_delete<uint8_t[]>());
     image_handle->image_info.data = data;
     char infopath[12];
@@ -392,13 +397,13 @@ bool GeneralImage::DoCapProcess() {
       cout << "--image-- readFrameFromCamera failed" << endl;
       break;
     }
-    if (read_num < 20) {
+    if (read_num < 5) {
       continue;
     }
     else {
-      cout << "--image-- send to inference engine" << endl;
+      // cout << "--image-- send to inference engine" << endl;
       SendToEngine(image_handle);
-      if (read_num >= 81) break;
+      if (read_num >= config_->image_num+5) break;
     }
   }
 
@@ -408,40 +413,55 @@ bool GeneralImage::DoCapProcess() {
   return true;
 }
 
+bool GeneralImage::DoPictureProcess() {
+  cout << "--image-- picture test" << endl;
+  int read_num = 0;
+  while (true) {
+    read_num += 1;
+    string path = "test.png";
+    // Step3: send every image to inference engine
+    shared_ptr<EngineTrans> image_handle = nullptr;
+    MAKE_SHARED_NO_THROW(image_handle, EngineTrans);
+    if (image_handle == nullptr) {
+      ERROR_LOG("Failed to deal file=%s. Reason: new EngineTrans failed.",
+                path.c_str());
+      return HIAI_ERROR;
+    }
+    // arrange image information, if failed, skip this image
+    if (!ArrangeImageInfo(image_handle, path)) {
+      break;
+    }
+    // send data to inference engine
+    image_handle->console_params.input_path = "test.png";
+    image_handle->console_params.model_height = 188;
+    image_handle->console_params.model_width = 623;
+    image_handle->console_params.output_path = "./";
+    image_handle->image_info.mode = config_->mode;
+    if (read_num < 5) {
+      continue;
+    }
+    else {
+      // cout << "--image-- send to inference engine" << endl;
+      SendToEngine(image_handle);
+      if (read_num >= config_->image_num+5) break;
+    }
+  }
+  return true;
+}
+
 HIAI_IMPL_ENGINE_PROCESS("general_image",
     GeneralImage, INPUT_SIZE) {
 
   bool status;
-  status = DoCapProcess();
+  if (config_->mode==0) {
+    status = DoCapProcess();
+  }
+  else {
+    status = DoPictureProcess();
+  }
   if (!status) cout << "--image-- DoCapProcess failed" << endl;
 
-  // string path = "test.png";
-  // // Step3: send every image to inference engine
-  // shared_ptr<EngineTrans> image_handle = nullptr;
-  // MAKE_SHARED_NO_THROW(image_handle, EngineTrans);
-  // if (image_handle == nullptr) {
-  //   ERROR_LOG("Failed to deal file=%s. Reason: new EngineTrans failed.",
-  //             path.c_str());
-  //   return HIAI_ERROR;
-  // }
-  // // arrange image information, if failed, skip this image
-  // if (!ArrangeImageInfo(image_handle, path)) {
-  //   return HIAI_ERROR;
-  // }
-
-  // // send data to inference engine
-  // image_handle->console_params.input_path = "test.png";
-  // image_handle->console_params.model_height = 188;
-  // image_handle->console_params.model_width = 623;
-  // image_handle->console_params.output_path = "./";
-  // if (!SendToEngine(image_handle)) {
-  //   ERROR_LOG("Failed to deal file=%s. Reason: send data failed.",
-  //             path.c_str());
-  //   return HIAI_ERROR;
-  // }
-
-
-  // Step4: send finished data
+  // send finished data
   shared_ptr<EngineTrans> image_handle2 = nullptr;
   MAKE_SHARED_NO_THROW(image_handle2, EngineTrans);
   if (image_handle2 == nullptr) {

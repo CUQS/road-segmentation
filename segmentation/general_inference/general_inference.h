@@ -84,16 +84,23 @@ private:
   // cache AI model parameters
   std::shared_ptr<hiai::AIModelManager> ai_model_manager_;
 
-  HIAI_StatusT ConvertImage(const std::shared_ptr<EngineTrans> &image_handle);
-
   /**
-   * @brief: pre-process
+   * @brief: pre-process cap
    * @param [in]: image_handle: original image
    * @param [out]: resized_image: ez_dvpp output image
    * @return: true: success; false: failed
    */
-  bool PreProcess(const std::shared_ptr<EngineTrans> &image_handle,
+  bool PreProcessCap(const std::shared_ptr<EngineTrans> &image_handle,
                   hiai::ImageData<u_int8_t> &resized_image);
+
+  /**
+   * @brief: pre-process picture
+   * @param [in]: image_handle: original image
+   * @param [out]: resized_image: ez_dvpp output image
+   * @return: true: success; false: failed
+   */
+  bool PreProcessPicture(const std::shared_ptr<EngineTrans> &image_handle,
+                  hiai::ImageData<u_int8_t> &resized_image); 
 
   /**
    * @brief: inference
