@@ -132,7 +132,7 @@ HIAI_StatusT GeneralPost::ModelPostProcess(const shared_ptr<EngineTrans> &result
   yuvImg.create(result->image_info.height*3/2, result->image_info.width, CV_8UC1);
   memcpy(yuvImg.data, pdata, result->image_info.size);
   cv::Mat mat;
-  cv::cvtColor(yuvImg, mat, CV_YUV2BGR_I420);
+  cv::cvtColor(yuvImg, mat, CV_YUV2RGB_NV21);
   // crop image
   cv::Rect rect(0,172,1246,376);
   cv::Mat imageCrop = mat(rect);
