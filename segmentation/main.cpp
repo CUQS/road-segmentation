@@ -124,8 +124,10 @@ int main(int argc, char *argv[]) {
   engine_id.graph_id = kGraphId;
   engine_id.engine_id = kFirstEngineId;
   engine_id.port_id = kFirstEnginePortId;
-
   std::shared_ptr<std::string> src_data(new std::string);
+  if (argc>1) {
+    src_data->assign(argv[1]);
+  }
   graph->SendData(engine_id, "string",
                   static_pointer_cast<void>(src_data));
 

@@ -12,7 +12,7 @@ graphs {
 
       items {
         name: "mode"
-        value: "1"
+        value: "0"
       }
 
       items {
@@ -32,7 +32,7 @@ graphs {
 
       items {
         name: "fps"
-        value: "5"
+        value: "10"
       }
 
       items {

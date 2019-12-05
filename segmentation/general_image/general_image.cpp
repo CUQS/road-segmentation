@@ -451,7 +451,13 @@ bool GeneralImage::DoPictureProcess() {
 
 HIAI_IMPL_ENGINE_PROCESS("general_image",
     GeneralImage, INPUT_SIZE) {
-
+  
+  if (arg0 == nullptr) {
+    ERROR_LOG("Failed to deal file=nothing. Reason: arg0 is empty.");
+    return HIAI_ERROR;
+  }
+  shared_ptr<string> src_data = static_pointer_cast<string>(arg0);
+  if (*src_data=="1") config_->mode = 1;
   bool status;
   if (config_->mode==0) {
     status = DoCapProcess();
