@@ -158,12 +158,6 @@ private:
   bool DoPictureProcess();
 
   /**
-   * @brief  video
-   * @return  success-->true ; fail-->false
-   */
-  bool DoVideoProcess();
-
-  /**
    * @brief   preprocess for cap camera
    * @return  camera code
    */
