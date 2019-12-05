@@ -19,7 +19,7 @@ class Server:
         print("connected, ", addr)
         print("wait info...")
         cv2.namedWindow("img", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("img", 1246, 376)
+        cv2.resizeWindow("img", 1242, 375)
         font = cv2.FONT_HERSHEY_SIMPLEX
         count = 200
         while count:
@@ -28,7 +28,10 @@ class Server:
             if count==200:
                 self.start_time = time.time()
             if (time.time() - self.start_time) > 1 :
-                self.fps = self.read_num / (time.time() - self.start_time)
+                if self.fps==0:
+                    self.fps = (self.read_num - 1) / (time.time() - self.start_time)
+                else:
+                    self.fps = self.read_num / (time.time() - self.start_time)
                 self.read_num = 0
                 self.start_time = time.time()
             # data convert

@@ -449,6 +449,67 @@ bool GeneralImage::DoPictureProcess() {
   return true;
 }
 
+bool GeneralImage::DoVideoProcess() {
+  cout << "--image-- video test" << endl;
+  int read_num = 0;
+  cv::VideoCapture cap("test.avi");
+  cout << "--image-- start read avi" << endl;
+  cv::Mat mat;
+  while (true) {
+    read_num += 1;
+    cap >> mat;
+    if (mat.empty()) {
+      cout << "--image-- break" << endl;
+      break;
+    }
+    shared_ptr<EngineTrans> image_handle = nullptr;
+    MAKE_SHARED_NO_THROW(image_handle, EngineTrans);
+    if (image_handle == nullptr) {
+      ERROR_LOG("Failed to deal file=test.avi, Reason: new EngineTrans failed.")
+      return HIAI_ERROR;
+    }
+    image_handle->image_info.width = mat.cols;
+    image_handle->image_info.height = mat.rows;
+
+    // set image data
+    cout << "--image-- mat.total(): " << mat.total() << endl;
+    uint32_t size = mat.total() * mat.channels();
+    u_int8_t *image_buf_ptr = new (nothrow) u_int8_t[size];
+    if (image_buf_ptr == nullptr) {
+      HIAI_ENGINE_LOG("new image buffer failed, size=%d!", size);
+      ERROR_LOG("Failed to deal file=test.avi, Reason: new image buffer failed.");
+      return false;
+    }
+    cout << "--image-- copy mat from image" << endl;
+    error_t mem_ret = memcpy_s(image_buf_ptr, size, mat.ptr<u_int8_t>(),
+                              mat.total() * mat.channels());
+    if (mem_ret != EOK) {
+      cout << "--image-- copy mat from image failed" << endl;
+      delete[] image_buf_ptr;
+      ERROR_LOG("Failed to deal file=test.avi, Reason: memcpy_s failed.");
+      image_buf_ptr = nullptr;
+      return false;
+    }
+
+    image_handle->image_info.size = size;
+    image_handle->image_info.data.reset(image_buf_ptr,
+                                        default_delete<u_int8_t[]>());
+    image_handle->console_params.model_height = 188;
+    image_handle->console_params.model_width = 623;
+    image_handle->image_info.mode = config_->mode;
+
+    if (read_num < 5) {
+      continue;
+    }
+    else {
+      cout << "--image-- send to inference engine" << endl;
+      SendToEngine(image_handle);
+      if (read_num >= config_->image_num+5) break;
+    }
+  }
+  return true;
+}
+
 HIAI_IMPL_ENGINE_PROCESS("general_image",
     GeneralImage, INPUT_SIZE) {
   
@@ -457,13 +518,18 @@ HIAI_IMPL_ENGINE_PROCESS("general_image",
     return HIAI_ERROR;
   }
   shared_ptr<string> src_data = static_pointer_cast<string>(arg0);
-  if (*src_data=="1") config_->mode = 1;
+  if (*src_data=="1") {
+    config_->mode = 1;
+  } else if (*src_data=="2") {
+    config_->mode = 2;
+  }
   bool status;
   if (config_->mode==0) {
     status = DoCapProcess();
-  }
-  else {
+  } else if(config_->mode==1) {
     status = DoPictureProcess();
+  } else {
+    status = DoVideoProcess();
   }
   if (!status) cout << "--image-- DoCapProcess failed" << endl;
 
