@@ -70,7 +70,7 @@
 1.  在Mind Studio所在Ubuntu服务器中，执行
 
     ```bash
-python3 run_server.py
+    python3 run_server.py
     ```
 
 2.  在Mind Studio所在Ubuntu服务器中，以HwHiAiUser用户SSH登录到Host侧。
