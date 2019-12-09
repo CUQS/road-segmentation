@@ -19,7 +19,7 @@ class Server:
         print("connected, ", addr)
         print("wait info...")
         cv2.namedWindow("img", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("img", 1242, 375)
+        cv2.resizeWindow("img", 1246, 376)
         font = cv2.FONT_HERSHEY_SIMPLEX
         count = 200
         while count:

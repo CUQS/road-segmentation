@@ -42,13 +42,13 @@
 
 ## 部署
 
-1. 以Mind Studio安装用户进入路面分割应用代码所在根目录，如_/home/ascend/road-objectdetection_。
+1. 以Mind Studio安装用户进入路面分割应用代码所在根目录，如**_/home/ascend/road-segmentation_**。
 
 2.  执行部署脚本，进行工程环境准备，包括公共库的编译与部署、应用的编译与部署等操作。
 
     bash deploy.sh  _host\_ip_ _model\_mode_
 
-    -   _host\_ip_：对于Atlas 200 DK开发者板，即为开发者板的IP地址。对于AI加速云服务器，即为Host的IP地址。
+    -   _host\_ip_：对于Atlas 200 DK开发者板，即为开发者板的IP地址。
     -   local：若Mind Studio所在Ubuntu系统未连接网络，请使用local模式，执行此命令前，需要参考[公共代码库下载](#zh-cn_topic_0182554604_section92241245122511)将依赖的公共代码库ezdvpp下载到“sample-objectdetection/script“目录下。
     -   internet：若Mind Studio所在Ubuntu系统已连接网络，请使用internet模式，在线下载依赖代码库ezdvpp。
 

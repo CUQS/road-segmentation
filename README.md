@@ -1,65 +1,26 @@
 EN|[CN](README_cn.md)
 
-# Object Detection<a name="EN-US_TOPIC_0167609448"></a>
+# Road Segmentation
 
-The object detection application runs on the Atlas 200 DK or the AI acceleration cloud server and implements the inference function by using Faster R-CNN object detection network.
+This application runs on the Atlas 200 DK and implements the road segmentation by using fcn network.
 
-## Prerequisites<a name="en-us_topic_0182554604_section137245294533"></a>
+## Prerequisites
 
 Before using an open source application, ensure that:
 
 -   Mind Studio  has been installed.
 -   The Atlas 200 DK developer board has been connected to  Mind Studio, the cross compiler has been installed, the SD card has been prepared, and basic information has been configured.
 
-## Software Preparation<a name="en-us_topic_0182554604_section181111827718"></a>
+## Software Preparation
 
 Before running the application, obtain the source code package and configure the environment as follows.
 
-1.  Obtain the source code package.
+1. Obtain the source code package.
 
-    Download all the code in the sample-objectdetection repository at  [https://github.com/Ascend/sample-objectdetection](https://github.com/Ascend/sample-objectdetection)  to any directory on Ubuntu Server where  Mind Studio  is located as the  Mind Studio  installation user, for example,  _/home/ascend/sample-objectdetection_.
-
-2.  <a name="en-us_topic_0182554604_li2074865610364"></a>Obtain the source network model required by the application.
-
-    Obtain the source network model and its weight file used in the application by referring to  [Table 1](#en-us_topic_0182554604_table19942111763710), and save them to any directory on the Ubuntu server where  Mind Studio  is located (for example,  **$HOME/ascend/models/faster\_rcnn**).
-
-    **Table  1**  Models used in the detection network application
-
-    <a name="en-us_topic_0182554604_table19942111763710"></a>
-    <table><thead align="left"><tr id="en-us_topic_0182554604_row611318123710"><th class="cellrowborder" valign="top" width="11.959999999999999%" id="mcps1.2.4.1.1"><p id="en-us_topic_0182554604_p81141820376"><a name="en-us_topic_0182554604_p81141820376"></a><a name="en-us_topic_0182554604_p81141820376"></a>Model Name</p>
-    </th>
-    <th class="cellrowborder" valign="top" width="8.07%" id="mcps1.2.4.1.2"><p id="en-us_topic_0182554604_p13181823711"><a name="en-us_topic_0182554604_p13181823711"></a><a name="en-us_topic_0182554604_p13181823711"></a>Model Description</p>
-    </th>
-    <th class="cellrowborder" valign="top" width="79.97%" id="mcps1.2.4.1.3"><p id="en-us_topic_0182554604_p1717182378"><a name="en-us_topic_0182554604_p1717182378"></a><a name="en-us_topic_0182554604_p1717182378"></a>Model Download Path</p>
-    </th>
-    </tr>
-    </thead>
-    <tbody><tr id="en-us_topic_0182554604_row1119187377"><td class="cellrowborder" valign="top" width="11.959999999999999%" headers="mcps1.2.4.1.1 "><p id="en-us_topic_0182554604_p7118189378"><a name="en-us_topic_0182554604_p7118189378"></a><a name="en-us_topic_0182554604_p7118189378"></a>faster_rcnn</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="8.07%" headers="mcps1.2.4.1.2 "><p id="en-us_topic_0182554604_p151818183718"><a name="en-us_topic_0182554604_p151818183718"></a><a name="en-us_topic_0182554604_p151818183718"></a>Network model for object detection.</p>
-    <p id="en-us_topic_0182554604_p8394945195815"><a name="en-us_topic_0182554604_p8394945195815"></a><a name="en-us_topic_0182554604_p8394945195815"></a>It is a Faster R-CNN model based on Caffe.</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="79.97%" headers="mcps1.2.4.1.3 "><p id="en-us_topic_0182554604_p611318163718"><a name="en-us_topic_0182554604_p611318163718"></a><a name="en-us_topic_0182554604_p611318163718"></a>Download the source network model file and its weight file by referring to<strong id="en-us_topic_0182554604_b17606155113121"><a name="en-us_topic_0182554604_b17606155113121"></a><a name="en-us_topic_0182554604_b17606155113121"></a> README.md</strong> in <a href="https://github.com/Ascend/models/tree/master/computer_vision/object_detect/faster_rcnn" target="_blank" rel="noopener noreferrer">https://github.com/Ascend/models/tree/master/computer_vision/object_detect/faster_rcnn</a>.</p>
-    </td>
-    </tr>
-    </tbody>
-    </table>
-
-3.  Convert the source network model to a Da Vinci model.
-    1.  Choose  **Tool \> Convert Model**  from the main menu of  Mind Studio. The **Convert Model**  page is displayed.
-    2.  On the **Convert Model**  page, set **Model File**  and  **Weight File**  to the model file and weight file downloaded in  [2](#en-us_topic_0182554604_li2074865610364), respectively.
-        -   Set  **Model Name**  to the model name in  [Table 1](#en-us_topic_0182554604_table19942111763710):  **faster\_rcnn**.
-        -   Retain default values for other parameters.
-
-            **Figure  1**  faster\_rcnn model conversion configuration<a name="en-us_topic_0182554604_fig79252510407"></a>  
-            ![](doc/source/img/faster_rcnn-model-conversion-configuration.jpg "faster_rcnn-model-conversion-configuration")
+   Download all the code in the road-segmentation repository at  [https://github.com/Ascend/road-segmentation](https://github.com/Ascend/road-segmentation)  to any directory on Ubuntu Server where  Mind Studio  is located as the  Mind Studio  installation user, for example,  _/home/ascend/road-segmentation_.
 
 
-    3.  Click  **OK**  to start model conversion.
-
-        After successful conversion, a .om Da Vinci model file is generated in the  **$HOME/tools/che/model-zoo/my-model/fast\_rcnn**  directory.
-
-4.  Log in to Ubuntu Server where  Mind Studio  is located as the  Mind Studio  installation user and set the environment variable  **DDK\_HOME**.
+2.  Log in to Ubuntu Server where  Mind Studio  is located as the  Mind Studio  installation user and set the environment variable  **DDK\_HOME**.
 
     **vim \~/.bashrc**
 
@@ -80,68 +41,76 @@ Before running the application, obtain the source code package and configure the
     **source \~/.bashrc**
 
 
-## Deployment<a name="en-us_topic_0182554604_section3723145213347"></a>
+## Deployment
 
-1.  Access the root directory where the cvnetworkverify application code is located as the  Mind Studio  installation user, for example,  **_/home/ascend/sample-objectdetection_**.
+1.  Access the root directory where the application code is located as the  Mind Studio  installation user, for example,  **_/home/ascend/road-segmentation_**.
 2.  Run the deployment script to prepare the project environment, including compiling and deploying the ascenddk public library and application.
 
     bash deploy.sh  _host\_ip_ _model\_mode_
 
-    -   _host\_ip_: For the Atlas 200 DK developer board, this parameter indicates the IP address of the developer board. For the AI acceleration cloud server, this parameter indicates the IP address of the host.
+    -   _host\_ip_: For the Atlas 200 DK developer board, this parameter indicates the IP address of the developer board.
     -   _model\_mode_  indicates the deployment mode of the model file. The default setting is  **internet**.
         -   **local**: If the Ubuntu system where  Mind Studio  is located is not connected to the network, use the local mode. In this case, download the dependent common code library ezdvpp to the  **sample-objectdetection/script**  directory by referring to the  [Downloading Dependent Code Library](#en-us_topic_0182554604_section92241245122511).
         -   **internet**: Indicates the online deployment mode. If the Ubuntu system where  Mind Studio  is located is connected to the network, use the Internet mode. In this case, download the dependent code library ezdvpp online.
 
 
     Example command:
-
+    
     **bash deploy.sh 192.168.1.2**
 
-3.  Upload the generated Da Vinci offline model and images to be inferred to the directory of the  **HwHiAiUser**  user on the host. For details, see  [Table 1](#en-us_topic_0182554604_table19942111763710).
+3. Upload the generated Da Vinci offline model **kittisegRealTime.om** to the directory of the  **HwHiAiUser**  user on the host.
 
-    For example, upload the model file  **faster\_rcnn.om**  to the  **/home/HwHiAiUser/models**  directory on the host.
+   ```bash
+   scp kittisegRealTime.om HwHiAiUser@host_ip:/home/HwHiAiUser/HIAI_PROJECTS/ascend_workspace/segmentation/out/kittisegRealTime.om
+   ```
 
-    The image requirements are as follows:
-
-    -   Format: JPG, PNG, and BMP.
-    -   Width of the input image: the value is an integer ranging from 16px to 4096px.
-    -   Height of the input image: the value is an integer ranging from 16px to 4096px.
+   For the Atlas 200 DK, the default value of  _**host\_ip**_  is  **192.168.1.2**  \(USB connection mode\) or  **192.168.0.2**  \(NIC connection mode\).
 
 
-## Running<a name="en-us_topic_0182554604_section87121843104920"></a>
+## Running
 
-1.  run server
+1.  run server on the host
     
     ```bash
     python3 run_server.py
     ```
 
-2.  Log in to the Host as the  **HwHiAiUser**  user in SSH mode on Ubuntu Server where  Mind Studio  is located.
+2. Log in to the Host as the  **HwHiAiUser**  user in SSH mode on Ubuntu Server where  Mind Studio  is located.
 
-    **ssh HwHiAiUser@**_host\_ip_
+   ```bash
+   ssh HwHiAiUser@host_ip
+   ```
 
-    For the Atlas 200 DK, the default value of  _**host\_ip**_  is  **192.168.1.2**  \(USB connection mode\) or  **192.168.0.2**  \(NIC connection mode\).
+   For the Atlas 200 DK, the default value of  _**host\_ip**_  is  **192.168.1.2**  \(USB connection mode\) or  **192.168.0.2**  \(NIC connection mode\).
 
-    For the AI acceleration cloud server,  _**host\_ip**_  indicates the IP address of the server where  Mind Studio  is located.
-
-3.  Go to the path of the executable file of object detection application.
+3.  Go to the path of the executable file of road segmentation application.
 
     **cd \~/HIAI\_PROJECTS/ascend\_workspace/segmentation/out**
 
 4.  Run the application.
 
+    Camera Test
+    
     ```bash
     ./ascend_segmentation
     ```
+    
+    Picture Test
+    
+    ```bash
+    ./ascend_segmentation 1
+    ```
+    
+    - Width of the input image: 623px
+    - Height of the input image: 188px
 
 
 ## Downloading Dependent Code Library<a name="en-us_topic_0182554604_section92241245122511"></a>
 
-Download the dependent software libraries to the  **sample-objectdetection/script**  directory.
+Download the dependent software libraries to the  road-segmentation/script**  directory.
 
 **Table  2**  Download the dependent software library
 
-<a name="en-us_topic_0182554604_table6701646132617"></a>
 <table><thead align="left"><tr id="en-us_topic_0182554604_row177421045163614"><th class="cellrowborder" valign="top" width="33.33333333333333%" id="mcps1.2.4.1.1"><p id="en-us_topic_0182554604_p574264511368"><a name="en-us_topic_0182554604_p574264511368"></a><a name="en-us_topic_0182554604_p574264511368"></a>Module Name</p>
 </th>
 <th class="cellrowborder" valign="top" width="33.33333333333333%" id="mcps1.2.4.1.2"><p id="en-us_topic_0182554604_p1474224573615"><a name="en-us_topic_0182554604_p1474224573615"></a><a name="en-us_topic_0182554604_p1474224573615"></a>Module Description</p>
@@ -160,4 +129,3 @@ Download the dependent software libraries to the  **sample-objectdetection/scrip
 </tr>
 </tbody>
 </table>
-
