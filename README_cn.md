@@ -6,11 +6,9 @@
 
 <p align='center'>
     <img src='img/img3.jpg' height=300>
+    <img src='to_out/test.png'>
+    <img src='img/img4.png'>
 </p>
-
-![image1](to_out/test.png)
-
-![image2](img/img4.png)
 
 ## 前提条件
 
@@ -102,14 +100,14 @@
    ```bash
    ./ascend_segmentation
    ```
-   ![image0](img/img2.png)
+   ![image2](img/img2.png)
    
    使用测试图片
    
    ```bash
    ./ascend_segmentation 1
    ```
-   ![image1](img/img1.jpg)
+   ![image1](img/img1.png)
    
    - 输入图片宽度：623px。
    - 输入图片高度：188px。

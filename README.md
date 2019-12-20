@@ -6,11 +6,9 @@ This application runs on the Atlas 200 DK and implements the road segmentation b
 
 <p align='center'>
     <img src='img/img3.jpg' height=300>
+    <img src='to_out/test.png'>
+    <img src='img/img4.png'>
 </p>
-
-![image1](to_out/test.png)
-
-![image2](img/img4.png)
 
 ## Prerequisites
 
@@ -102,14 +100,14 @@ Before running the application, obtain the source code package and configure the
     ```bash
     ./ascend_segmentation
     ```
-    ![image1](img/img2.jpg)
+    ![image2](img/img2.png)
     
     Picture Test
     
     ```bash
     ./ascend_segmentation 1
     ```
-    ![image1](img/img1.jpg)
+    ![image1](img/img1.png)
     
     - Width of the input image: 623px
     - Height of the input image: 188px
