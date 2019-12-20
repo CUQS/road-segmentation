@@ -6,7 +6,13 @@ This application runs on the Atlas 200 DK and implements the road segmentation b
 
 <p align='center'>
     <img src='img/img3.jpg' height=300>
+</p>
+
+<p align='center'>
     <img src='to_out/test.png'>
+</p>
+
+<p align='center'>
     <img src='img/img4.png'>
 </p>
 
@@ -36,7 +42,7 @@ Before running the application, obtain the source code package and configure the
 
     **export LD\_LIBRARY\_PATH=$DDK\_HOME/uihost/lib**
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:**   
+    >**NOTE:**   
     >-   **XXX**  indicates the  Mind Studio  installation user, and  **/home/XXX/tools**  indicates the default installation path of the DDK.  
     >-   If the environment variables have been added, skip this step.  
 

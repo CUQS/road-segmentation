@@ -6,7 +6,13 @@
 
 <p align='center'>
     <img src='img/img3.jpg' height=300>
+</p>
+
+<p align='center'>
     <img src='to_out/test.png'>
+</p>
+
+<p align='center'>
     <img src='img/img4.png'>
 </p>
 
@@ -35,7 +41,7 @@
 
     **export LD\_LIBRARY\_PATH=$DDK\_HOME/uihost/lib**
 
-    >![](doc/source/img/icon-note.gif) **说明：**   
+    >**说明：**   
     >-   XXX为Mind Studio安装用户，/home/XXX/tools为DDK默认安装路径。  
     >-   如果此环境变量已经添加，则此步骤可跳过。  
 
