@@ -4,11 +4,13 @@ EN|[CN](README_cn.md)
 
 This application runs on the Atlas 200 DK and implements the road segmentation by using fcn network.
 
-![image](img/img3.jpg)
+<p align='center'>
+    <img src='img/img3.jpg' height=300>
+</p>
 
 ![image1](to_out/test.png)
 
-![image2](img/img1.png)
+![image2](img/img4.png)
 
 ## Prerequisites
 
@@ -100,12 +102,14 @@ Before running the application, obtain the source code package and configure the
     ```bash
     ./ascend_segmentation
     ```
+    ![image1](img/img2.jpg)
     
     Picture Test
     
     ```bash
     ./ascend_segmentation 1
     ```
+    ![image1](img/img1.jpg)
     
     - Width of the input image: 623px
     - Height of the input image: 188px
