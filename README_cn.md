@@ -4,6 +4,12 @@
 
 本Application支持运行在Atlas 200 DK上，实现了路面实时分割的功能。
 
+![image](img/img3.jpg)
+
+![image1](to_out/test.png)
+
+![image2](img/img1.png)
+
 ## 前提条件
 
 部署此Sample前，需要准备好以下环境：

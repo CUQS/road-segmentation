@@ -4,6 +4,12 @@ EN|[CN](README_cn.md)
 
 This application runs on the Atlas 200 DK and implements the road segmentation by using fcn network.
 
+![image](img/img3.jpg)
+
+![image1](to_out/test.png)
+
+![image2](img/img1.png)
+
 ## Prerequisites
 
 Before using an open source application, ensure that:
