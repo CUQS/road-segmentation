@@ -154,7 +154,7 @@ HIAI_StatusT GeneralPost::ModelPostProcessCap(const shared_ptr<EngineTrans> &res
   cv::Mat mat;
   cv::cvtColor(yuvImg, mat, CV_YUV2RGB_NV21);
   // crop image
-  cv::Rect rect(0,172,1246,376);
+  cv::Rect rect(0,176,1246,376);
   cv::Mat imageCrop = mat(rect);
   // resize iamge
   cv::resize(imageCrop, imageCrop, cv::Size(623, 188));
